@@ -14,12 +14,6 @@ public class GameState
 
     public void SetStats(Stat value)
     {
-
-        value.faith = Math.Min(value.faith, 100);
-        value.order = Math.Min(value.order, 100);
-        value.economy = Math.Min(value.economy, 100);
-        value.unrest = Math.Min(value.unrest, 100);
-
         stats = value;
     }
 
