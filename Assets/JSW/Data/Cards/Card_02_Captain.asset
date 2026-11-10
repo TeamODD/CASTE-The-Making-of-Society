@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7986989abfc557243b7934f03f5718bb, type: 3}
+  m_Name: Card_02_Captain
+  m_EditorClassIdentifier: Assembly-CSharp::Caste.Cards.CardData
+  _characterName: Guard Captain
+  _portrait: {fileID: 0}
+  _question: Bandits roam the roads. Send soldiers?
+  _left:
+    _label: Ignore
+    _effects:
+    - _stat: {fileID: 11400000, guid: 48eb7e6a07865e84685ae8ffc0abf383, type: 2}
+      _amount: -15
+    - _stat: {fileID: 11400000, guid: abda11a17e28827479adf674eb4ca9e1, type: 2}
+      _amount: 10
+  _right:
+    _label: Send
+    _effects:
+    - _stat: {fileID: 11400000, guid: 48eb7e6a07865e84685ae8ffc0abf383, type: 2}
+      _amount: 10
+    - _stat: {fileID: 11400000, guid: 8a3aeec5c239b0b44863331fe2b4530c, type: 2}
+      _amount: -5
