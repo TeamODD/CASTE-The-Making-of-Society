@@ -12,18 +12,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7986989abfc557243b7934f03f5718bb, type: 3}
   m_Name: Card_03_Merchant
   m_EditorClassIdentifier: Assembly-CSharp::Caste.Cards.CardData
-  _characterName: Merchant
+  _characterName: "\uC0C1\uC778"
   _portrait: {fileID: 0}
-  _question: Raise taxes on the market?
+  _question: "\uC2DC\uC7A5 \uC138\uAE08\uC744 \uC62C\uB9AC\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?"
   _left:
-    _label: No
+    _label: "\uC544\uB2C8\uC624"
     _effects:
     - _stat: {fileID: 11400000, guid: 8a3aeec5c239b0b44863331fe2b4530c, type: 2}
       _amount: -5
     - _stat: {fileID: 11400000, guid: abda11a17e28827479adf674eb4ca9e1, type: 2}
       _amount: -5
   _right:
-    _label: Yes
+    _label: "\uC62C\uB9B0\uB2E4"
     _effects:
     - _stat: {fileID: 11400000, guid: 8a3aeec5c239b0b44863331fe2b4530c, type: 2}
       _amount: 20

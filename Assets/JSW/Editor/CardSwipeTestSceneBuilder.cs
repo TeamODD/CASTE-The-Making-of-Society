@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using Caste.Cards;
 using Caste.CardSwipe;
 using Caste.Stats;
@@ -28,6 +28,7 @@ namespace Caste.CardSwipe.EditorTools
         private const string CardsDir = Root + "/Data/Cards";
         private const string SpritesDir = Root + "/Sprites";
         private const string BackgroundSprite = SpritesDir + "/CardBoard_Background.png";
+        private const string KoreanFontPath = Root + "/Font/NotoSansKR-Black SDF (2).asset";
 
         // 게임판(CardBoard.png, 1080x1920) 기준 아이콘 중심 좌표 (왼쪽 위 기준 픽셀)
         private static readonly Vector2[] IconCenters =
@@ -210,10 +211,10 @@ namespace Caste.CardSwipe.EditorTools
             var finance = Load<StatDefinition>(StatsDir, statFiles[2]);
             var unrest = Load<StatDefinition>(StatsDir, statFiles[3]);
 
-            if (newStats[0]) InitStat(faith, "Faith", new Color(0.95f, 0.8f, 0.3f), true);
-            if (newStats[1]) InitStat(security, "Security", new Color(0.35f, 0.6f, 0.95f), true);
-            if (newStats[2]) InitStat(finance, "Finance", new Color(0.4f, 0.8f, 0.45f), true);
-            if (newStats[3]) InitStat(unrest, "Unrest", new Color(0.85f, 0.35f, 0.35f), false);
+            if (newStats[0]) InitStat(faith, "신앙", new Color(0.95f, 0.8f, 0.3f), true);
+            if (newStats[1]) InitStat(security, "치안", new Color(0.35f, 0.6f, 0.95f), true);
+            if (newStats[2]) InitStat(finance, "재정", new Color(0.4f, 0.8f, 0.45f), true);
+            if (newStats[3]) InitStat(unrest, "불만", new Color(0.85f, 0.35f, 0.35f), false);
 
             // 아이콘이 비어 있는 스탯에만 Sprites 폴더의 아이콘을 넣는다 (사용자가 바꾼 아이콘은 유지)
             StatDefinition[] statAssets = { faith, security, finance, unrest };
@@ -221,17 +222,17 @@ namespace Caste.CardSwipe.EditorTools
                 AssignIconIfMissing(statAssets[i], $"{SpritesDir}/{IconFiles[i]}");
 
             if (newCards[0])
-                InitCard(Load<CardData>(CardsDir, cardFiles[0]), "High Priest", "The temple needs gold for repairs.",
-                    "Refuse", new[] { (faith, -10), (unrest, 5) },
-                    "Donate", new[] { (faith, 15), (finance, -10) });
+                InitCard(Load<CardData>(CardsDir, cardFiles[0]), "대사제", "신전을 보수하려면 금화가 필요합니다.",
+                    "거절한다", new[] { (faith, -10), (unrest, 5) },
+                    "기부한다", new[] { (faith, 15), (finance, -10) });
             if (newCards[1])
-                InitCard(Load<CardData>(CardsDir, cardFiles[1]), "Guard Captain", "Bandits roam the roads. Send soldiers?",
-                    "Ignore", new[] { (security, -15), (unrest, 10) },
-                    "Send", new[] { (security, 10), (finance, -5) });
+                InitCard(Load<CardData>(CardsDir, cardFiles[1]), "경비대장", "도적들이 길목을 휩쓸고 있습니다. 병사를 보낼까요?",
+                    "무시한다", new[] { (security, -15), (unrest, 10) },
+                    "파병한다", new[] { (security, 10), (finance, -5) });
             if (newCards[2])
-                InitCard(Load<CardData>(CardsDir, cardFiles[2]), "Merchant", "Raise taxes on the market?",
-                    "No", new[] { (finance, -5), (unrest, -5) },
-                    "Yes", new[] { (finance, 20), (unrest, 15) });
+                InitCard(Load<CardData>(CardsDir, cardFiles[2]), "상인", "시장 세금을 올리시겠습니까?",
+                    "아니오", new[] { (finance, -5), (unrest, -5) },
+                    "올린다", new[] { (finance, 20), (unrest, 15) });
 
             AssetDatabase.SaveAssets();
         }
@@ -375,7 +376,9 @@ namespace Caste.CardSwipe.EditorTools
         {
             RectTransform rect = CreateRect(name, parent);
             var tmp = rect.gameObject.AddComponent<TextMeshProUGUI>();
-            tmp.text = text; // 한글은 한글 폰트 에셋이 생기면 사용
+            var font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(KoreanFontPath);
+            if (font != null) tmp.font = font; // 씬을 다시 만들어도 한글 폰트 유지
+            tmp.text = text;
             tmp.fontSize = size;
             tmp.alignment = align;
             tmp.color = color;

@@ -1,4 +1,5 @@
 using Caste.CardSwipe;
+using Caste.Effects;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,6 +10,8 @@ namespace Caste.Cards
     public class CardView : MonoBehaviour
     {
         [SerializeField] private TMP_Text _question;
+        [Tooltip("(선택) 대사를 타자기 효과로 출력. 비워두면 기존처럼 한 번에 표시한다.")]
+        [SerializeField] private TypewriterEffect _questionTypewriter;
         [SerializeField] private TMP_Text _characterName;
         [SerializeField] private Image _portrait;
         [SerializeField] private TMP_Text _leftLabel;
@@ -18,7 +21,7 @@ namespace Caste.Cards
         {
             if (card == null) return;
 
-            SetText(_question, card.Question);
+            ShowQuestion(card.Question);
             SetText(_characterName, card.CharacterName);
             SetText(_leftLabel, card.GetChoice(SwipeDirection.Left).Label);
             SetText(_rightLabel, card.GetChoice(SwipeDirection.Right).Label);
@@ -30,6 +33,13 @@ namespace Caste.Cards
                 _portrait.color = Color.white;
                 _portrait.preserveAspect = true;
             }
+        }
+
+        // 타자기 컴포넌트가 연결돼 있으면 그쪽에 맡기고, 없으면 기존 방식 그대로 (OCP: 기존 동작을 깨지 않고 확장)
+        private void ShowQuestion(string text)
+        {
+            if (_questionTypewriter != null) _questionTypewriter.Play(text);
+            else SetText(_question, text);
         }
 
         private static void SetText(TMP_Text target, string text)

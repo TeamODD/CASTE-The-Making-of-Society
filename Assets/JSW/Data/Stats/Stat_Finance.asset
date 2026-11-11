@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1c0ee9ec560a26941af6f5f64a0269f9, type: 3}
   m_Name: Stat_Finance
   m_EditorClassIdentifier: Assembly-CSharp::Caste.Stats.StatDefinition
-  _displayName: Finance
+  _displayName: "\uC7AC\uC815"
   _icon: {fileID: -6124028615380148055, guid: 6eb1cd8a44cede74facf75fd955ff00c, type: 3}
   _color: {r: 1, g: 1, b: 1, a: 1}
   _min: 0

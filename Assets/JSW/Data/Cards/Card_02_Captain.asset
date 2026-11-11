@@ -12,18 +12,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7986989abfc557243b7934f03f5718bb, type: 3}
   m_Name: Card_02_Captain
   m_EditorClassIdentifier: Assembly-CSharp::Caste.Cards.CardData
-  _characterName: Guard Captain
+  _characterName: "\uACBD\uBE44\uB300\uC7A5"
   _portrait: {fileID: 0}
-  _question: Bandits roam the roads. Send soldiers?
+  _question: "\uB3C4\uC801\uB4E4\uC774 \uAE38\uBAA9\uC744 \uD729\uC4F8\uACE0 \uC788\uC2B5\uB2C8\uB2E4.
+    \uBCD1\uC0AC\uB97C \uBCF4\uB0BC\uAE4C\uC694?"
   _left:
-    _label: Ignore
+    _label: "\uBB34\uC2DC\uD55C\uB2E4"
     _effects:
     - _stat: {fileID: 11400000, guid: 48eb7e6a07865e84685ae8ffc0abf383, type: 2}
       _amount: -15
     - _stat: {fileID: 11400000, guid: abda11a17e28827479adf674eb4ca9e1, type: 2}
       _amount: 10
   _right:
-    _label: Send
+    _label: "\uD30C\uBCD1\uD55C\uB2E4"
     _effects:
     - _stat: {fileID: 11400000, guid: 48eb7e6a07865e84685ae8ffc0abf383, type: 2}
       _amount: 10

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1c0ee9ec560a26941af6f5f64a0269f9, type: 3}
   m_Name: Stat_Faith
   m_EditorClassIdentifier: Assembly-CSharp::Caste.Stats.StatDefinition
-  _displayName: Faith
+  _displayName: "\uC2E0\uC559"
   _icon: {fileID: -1556323347403728984, guid: def82865c91a8fe48a4f0b517f852160, type: 3}
   _color: {r: 1, g: 1, b: 1, a: 1}
   _min: 0
