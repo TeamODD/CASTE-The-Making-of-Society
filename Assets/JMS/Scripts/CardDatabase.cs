@@ -1,15 +1,50 @@
-
-using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using CsvHelper;
+using System.Collections.Generic;
+using System.Linq;
 
-public static class EventCsvParser
+public class CardDatabase
 {
-    public static List<EventData> Parse(string csvText)
+    private readonly Dictionary<string, List<CardData>> cardsByEventId;
+
+    public CardDatabase(string csvText)
     {
-        List<EventData> eventList = new();
+        cardsByEventId = CardCsvParser.Parse(csvText)
+            .GroupBy(card => card.eventId)
+            .ToDictionary(group => group.Key, group => group.ToList());
+    }
+
+    public List<CardData> GetAllCards()
+    {
+        return cardsByEventId.Values
+            .SelectMany(variants => variants)
+            .ToList();
+    }
+
+    public List<CardData> GetEventVariants(string eventId)
+    {
+        if (cardsByEventId.TryGetValue(eventId, out var variants))
+        {
+            return variants;
+        }
+
+        return new List<CardData>();
+    }
+
+    public CardData FindByVariantId(string variantId)
+    {
+        return cardsByEventId.Values
+            .SelectMany(variants => variants)
+            .FirstOrDefault(card => card.variantId == variantId);
+    }
+}
+
+internal static class CardCsvParser
+{
+    public static List<CardData> Parse(string csvText)
+    {
+        List<CardData> cards = new();
 
         using var reader = new StringReader(csvText);
         using var csv = new CsvReader(
@@ -20,7 +55,7 @@ public static class EventCsvParser
 
         while (csv.Read())
         {
-            EventData eventData = new EventData
+            CardData card = new CardData
             {
                 eventId = csv.GetField("event_id"),
                 variantId = csv.GetField("variant_id"),
@@ -66,10 +101,10 @@ public static class EventCsvParser
                 }
             };
 
-            eventList.Add(eventData);
+            cards.Add(card);
         }
 
-        return eventList;
+        return cards;
     }
 
     private static int GetInt(CsvReader csv, string column)

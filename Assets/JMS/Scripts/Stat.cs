@@ -8,6 +8,8 @@ public struct Stat
     public int economy;
     public int unrest;
 
+    public static Stat Default => new Stat(50, 50, 50, 50);
+
     public Stat(int faith, int order, int economy, int unrest)
     {
         this.faith = faith;
@@ -24,5 +26,20 @@ public struct Stat
             a.economy + b.economy,
             a.unrest + b.unrest
         );
+    }
+
+    public Stat Clamp()
+    {
+        return new Stat(
+            Math.Max(0, Math.Min(100, faith)),
+            Math.Max(0, Math.Min(100, order)),
+            Math.Max(0, Math.Min(100, economy)),
+            Math.Max(0, Math.Min(100, unrest))
+        );
+    }
+
+    public void Clear()
+    {
+        this = Stat.Default;
     }
 }

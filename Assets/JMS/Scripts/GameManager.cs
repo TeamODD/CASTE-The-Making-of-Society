@@ -1,33 +1,34 @@
+using System;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
-    [SerializeField] private EventManager eventManager;
-    [SerializeField] private StatManager statManager;
+    [SerializeField] private TextAsset csvFile;
+
+    public event Action<GameState> GameStateReady;
+
+    private GameSession session;
+
+    private void Start()
+    {
+        var cardDatabase = new CardDatabase(csvFile.text);
+        session = new GameSession(cardDatabase, new CardSelector(), new SaveSystem());
+        session.StartOrResume();
+        GameStateReady?.Invoke(session.State);
+    }
 
     public void ChooseLeft()
     {
-        ProcessChoice(false);
+        session.Choose(false);
     }
 
     public void ChooseRight()
     {
-        ProcessChoice(true);
+        session.Choose(true);
     }
 
-    private void ProcessChoice(bool isRight)
+    public void BackToStart()
     {
-        EventData currentEvent = eventManager.GetCurrentEvent();
-
-        if (currentEvent == null)
-            return;
-
-        ChoiceData choice = isRight
-            ? currentEvent.rightChoice
-            : currentEvent.leftChoice;
-
-        statManager.ApplyChoice(choice);
-
-        eventManager.NextEvent();
+        session.RestoreCheckpoint();
     }
 }

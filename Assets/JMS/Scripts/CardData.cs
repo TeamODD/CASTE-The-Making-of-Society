@@ -1,4 +1,10 @@
-public class EventData
+// EventData.cs → CardData.cs
+// ChoiceData 선언을 이 파일로 옮긴 뒤 기존 ChoiceData.cs를 삭제한다.
+
+using System;
+
+[Serializable]
+public class CardData
 {
     public string eventId;
     public string variantId;
@@ -16,4 +22,11 @@ public class EventData
 
     public ChoiceData leftChoice;
     public ChoiceData rightChoice;
+}
+[Serializable]
+public class ChoiceData
+{
+    public string text;
+    public Stat delta;
+    public string flagOnSelect;
 }
