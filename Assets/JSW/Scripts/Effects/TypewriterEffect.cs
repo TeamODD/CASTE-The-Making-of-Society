@@ -17,6 +17,10 @@ namespace Caste.Effects
         [Header("대상 (비워두면 같은 오브젝트의 TMP_Text 자동 사용)")]
         [SerializeField] private TMP_Text _target;
 
+        [Header("켜기 / 끄기")]
+        [Tooltip("끄면 타자기 효과 없이 글자가 한 번에 나온다. (설정창의 타자기 스위치가 이 값을 바꾼다)")]
+        [SerializeField] private bool _typingEnabled = true;
+
         [Header("속도")]
         [Tooltip("1초에 몇 글자를 보여줄지. 클수록 빠르다.")]
         [SerializeField, Min(1f)] private float _charactersPerSecond = 30f;
@@ -53,6 +57,17 @@ namespace Caste.Effects
             set => _charactersPerSecond = Mathf.Max(1f, value);
         }
 
+        /// <summary>타자기 효과 사용 여부. 재생 중에 끄면 남은 글자를 즉시 보여준다.</summary>
+        public bool TypingEnabled
+        {
+            get => _typingEnabled;
+            set
+            {
+                _typingEnabled = value;
+                if (!value) Skip();
+            }
+        }
+
         private void Reset() => _target = GetComponent<TMP_Text>();
 
         private void Awake()
@@ -77,11 +92,19 @@ namespace Caste.Effects
             if (_target != null) _target.maxVisibleCharacters = int.MaxValue;
         }
 
-        /// <summary>현재 텍스트를 처음부터 타자기로 재생한다.</summary>
+        /// <summary>현재 텍스트를 처음부터 타자기로 재생한다. (꺼져 있으면 즉시 전체 표시)</summary>
         public void Play()
         {
             if (_target == null) return;
-            if (_routine != null) StopCoroutine(_routine);
+            if (_routine != null) { StopCoroutine(_routine); _routine = null; }
+
+            if (!_typingEnabled)
+            {
+                _target.maxVisibleCharacters = int.MaxValue;
+                _onCompleted?.Invoke();
+                return;
+            }
+
             _routine = StartCoroutine(Run());
         }
 

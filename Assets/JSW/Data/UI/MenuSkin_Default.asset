@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da3319e68fb4937498942779ab8bb742, type: 3}
+  m_Name: MenuSkin_Default
+  m_EditorClassIdentifier: Assembly-CSharp::Caste.UI.MenuSkin
+  panelSprite: {fileID: 0}
+  panelColor: {r: 0.9372549, g: 0.8666667, b: 0.70980394, a: 1}
+  buttonSprite: {fileID: 0}
+  buttonPressedSprite: {fileID: 0}
+  buttonColor: {r: 0.16470589, g: 0.11764706, b: 0.078431375, a: 1}
+  font: {fileID: 11400000, guid: 08ecda85b73e68d45a735bc6e2bcc4e2, type: 2}
+  textColor: {r: 0.9372549, g: 0.8666667, b: 0.70980394, a: 1}
+  settingsIconSprite: {fileID: 0}
+  settingsIconColor: {r: 0.16470589, g: 0.11764706, b: 0.078431375, a: 1}

@@ -1,4 +1,5 @@
 using System;
+using Caste.UI;
 using UnityEngine;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -19,6 +20,9 @@ namespace Caste.CardSwipe
 
         private void Update()
         {
+            // 키보드는 UI 레이캐스트로 막히지 않으므로 팝업이 열려 있으면 직접 무시
+            if (PopupView.IsAnyOpen) return;
+
             if (PressedLeft()) ChoiceMade?.Invoke(SwipeDirection.Left);
             else if (PressedRight()) ChoiceMade?.Invoke(SwipeDirection.Right);
         }
