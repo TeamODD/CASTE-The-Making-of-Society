@@ -25,6 +25,7 @@ namespace Caste.EditorTools
             ("Caste.Cards", "카드"),
             ("Caste.Stats", "스탯"),
             ("Caste.Effects", "효과"),
+            ("Caste.Turn", "턴 카운터"),
         };
 
         private readonly Dictionary<Object, Editor> _editors = new Dictionary<Object, Editor>();
