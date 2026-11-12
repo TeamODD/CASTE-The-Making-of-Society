@@ -6,20 +6,20 @@ using System.Linq;
 
 public class CardDatabase
 {
+    private readonly List<CardData> cards;
     private readonly Dictionary<string, List<CardData>> cardsByEventId;
 
     public CardDatabase(string csvText)
     {
-        cardsByEventId = CardCsvParser.Parse(csvText)
+        cards = CardCsvParser.Parse(csvText);
+        cardsByEventId = cards
             .GroupBy(card => card.eventId)
             .ToDictionary(group => group.Key, group => group.ToList());
     }
 
     public List<CardData> GetAllCards()
     {
-        return cardsByEventId.Values
-            .SelectMany(variants => variants)
-            .ToList();
+        return new List<CardData>(cards);
     }
 
     public List<CardData> GetEventVariants(string eventId)
@@ -34,9 +34,7 @@ public class CardDatabase
 
     public CardData FindByVariantId(string variantId)
     {
-        return cardsByEventId.Values
-            .SelectMany(variants => variants)
-            .FirstOrDefault(card => card.variantId == variantId);
+        return cards.FirstOrDefault(card => card.variantId == variantId);
     }
 }
 

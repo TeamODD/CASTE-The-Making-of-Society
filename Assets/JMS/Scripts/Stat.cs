@@ -38,6 +38,12 @@ public struct Stat
         );
     }
 
+    public bool IsAtLimit()
+    {
+        return faith == 0 || faith == 100 || order == 0 || order == 100
+            || economy == 0 || economy == 100 || unrest == 0 || unrest == 100;
+    }
+
     public void Clear()
     {
         this = Stat.Default;
