@@ -19,3 +19,4 @@ MonoBehaviour:
   _max: 100
   _startValue: 50
   _higherIsBetter: 1
+  _key: 1

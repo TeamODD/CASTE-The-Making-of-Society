@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Caste.CardSwipe;
 using Caste.Stats;
@@ -27,6 +27,22 @@ namespace Caste.Cards
         public string Question => _question;
 
         public ChoiceData GetChoice(SwipeDirection dir) => dir == SwipeDirection.Left ? _left : _right;
+
+        /// <summary>
+        /// 실행 중에 만드는 카드 (백엔드 CSV 카드 → 화면용 카드 변환에 사용). 에셋 파일로 저장되지 않는다.
+        /// </summary>
+        public static CardData CreateRuntime(string characterName, Sprite portrait, string question,
+            ChoiceData left, ChoiceData right)
+        {
+            var card = CreateInstance<CardData>();
+            card.hideFlags = HideFlags.DontSave;
+            card._characterName = characterName;
+            card._portrait = portrait;
+            card._question = question;
+            card._left = left ?? new ChoiceData();
+            card._right = right ?? new ChoiceData();
+            return card;
+        }
     }
 
     [Serializable]
@@ -34,6 +50,14 @@ namespace Caste.Cards
     {
         [SerializeField] private string _label;
         [SerializeField] private StatDelta[] _effects = Array.Empty<StatDelta>();
+
+        public ChoiceData() { }
+
+        public ChoiceData(string label, StatDelta[] effects)
+        {
+            _label = label;
+            _effects = effects ?? Array.Empty<StatDelta>();
+        }
 
         public string Label => _label;
         public IReadOnlyList<StatDelta> Effects => _effects;

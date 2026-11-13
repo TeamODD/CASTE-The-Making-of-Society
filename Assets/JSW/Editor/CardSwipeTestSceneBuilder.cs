@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using Caste.Cards;
+using System.Linq;
 using Caste.CardSwipe;
 using Caste.Stats;
 using TMPro;
@@ -14,6 +13,9 @@ using UnityEngine.InputSystem.UI;
 
 namespace Caste.CardSwipe.EditorTools
 {
+    // using을 namespace 안에 둔다: 전역(네임스페이스 없는) CardData(JMS)보다 Caste.Cards.CardData를 먼저 찾게 하기 위함.
+    using Caste.Cards;
+
     /// <summary>
     /// 메뉴 한 번으로 카드 게임 테스트 씬(스탯 게이지 + 카드 스와이프)을 만든다.
     /// 메뉴: 상단 CASTE → JSW → Build Card Swipe Test Scene
@@ -324,7 +326,7 @@ namespace Caste.CardSwipe.EditorTools
             // 변화량 숫자: 아이콘 아래 어두운 띠 안
             TMP_Text delta = CreateText("Delta", root, "", 40f, TextAlignmentOptions.Center, new Color(1f, 1f, 1f, 0f));
             SetAnchored(delta.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, -45f), new Vector2(160f, 50f));
-            delta.fontStyle = FontStyles.Bold;
+            // Black 굵기 폰트라 Bold를 더하면 획이 뭉개져서 쓰지 않는다
 
             var view = root.gameObject.AddComponent<StatGaugeView>();
             SetRef(view, "_stat", stat);

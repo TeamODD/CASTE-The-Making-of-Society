@@ -1,9 +1,12 @@
-using Caste.Cards;
-using Caste.CardSwipe;
 using UnityEngine;
 
 namespace Caste.Stats
 {
+    // using을 namespace 안에 둔다: 전역(네임스페이스 없는) CardData/ChoiceData(JMS)보다
+    // Caste.Cards의 타입을 먼저 찾게 하기 위함.
+    using Caste.Cards;
+    using Caste.CardSwipe;
+
     /// <summary>
     /// 상단 스탯 패널. 카드 기울기를 받아 "그 방향 선택지를 고르면 어떻게 되는지"를 게이지들에 보여준다.
     /// IChoicePreview를 구현하므로 CardSwipeController는 이 클래스를 몰라도 된다. (DIP, OCP)

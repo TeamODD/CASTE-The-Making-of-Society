@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -27,6 +27,19 @@ namespace Caste.Stats
 
         /// <summary>변화량을 적용하면 몇이 되는지 (실제로 바꾸지는 않음)</summary>
         public int Preview(StatDefinition stat, int delta) => stat.Clamp(Get(stat) + delta);
+
+        /// <summary>
+        /// 외부(백엔드)가 확정한 값으로 맞춘다. 체크포인트 복귀처럼 값이 한 번에 바뀔 때도 사용한다.
+        /// </summary>
+        public void Set(StatDefinition stat, int value)
+        {
+            if (stat == null || !_values.ContainsKey(stat)) return;
+            int clamped = stat.Clamp(value);
+            if (_values[stat] == clamped) return;
+
+            _values[stat] = clamped;
+            Changed?.Invoke(stat, clamped);
+        }
 
         public void Apply(IReadOnlyList<StatDelta> effects)
         {

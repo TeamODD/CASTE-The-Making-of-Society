@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Caste.Stats
 {
@@ -22,6 +22,10 @@ namespace Caste.Stats
         [Tooltip("높을수록 좋은 스탯인가? (불만처럼 높을수록 나쁘면 끄기) → 미리보기 색 결정")]
         [SerializeField] private bool _higherIsBetter = true;
 
+        [Header("백엔드 연결")]
+        [Tooltip("백엔드(JMS) 스탯 중 어느 값과 연결할지. 신앙=Faith, 치안=Order, 재정=Economy, 불만=Unrest")]
+        [SerializeField] private StatKey _key = StatKey.None;
+
         public string DisplayName => _displayName;
         public Sprite Icon => _icon;
         public Color Color => _color;
@@ -29,6 +33,7 @@ namespace Caste.Stats
         public int Max => _max;
         public int StartValue => Clamp(_startValue);
         public bool HigherIsBetter => _higherIsBetter;
+        public StatKey Key => _key;
 
         public int Clamp(int value) => Mathf.Clamp(value, _min, _max);
 

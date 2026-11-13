@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 
 namespace Caste.Stats
@@ -9,6 +9,12 @@ namespace Caste.Stats
     {
         [SerializeField] private StatDefinition _stat;
         [SerializeField] private int _amount;
+
+        public StatDelta(StatDefinition stat, int amount)
+        {
+            _stat = stat;
+            _amount = amount;
+        }
 
         public StatDefinition Stat => _stat;
         public int Amount => _amount;
