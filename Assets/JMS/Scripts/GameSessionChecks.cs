@@ -18,6 +18,9 @@ internal sealed class GameSessionChecks
     private CardDatabase cardDatabase => fixtures.Database;
     private CardData demoCard => fixtures.DemoCard;
 
+    /// <summary>
+    /// 자동 검사를 실행하고 수동 테스트에 필요한 데이터와 검사 결과를 반환합니다.
+    /// </summary>
     public static (TestSessionData data, IReadOnlyList<(string name, string error)> results) Run(
         string csvText, bool managerDisabled, string demoVariantId)
     {
@@ -26,6 +29,9 @@ internal sealed class GameSessionChecks
         return (checks.fixtures, checks.results);
     }
 
+    /// <summary>
+    /// CSV와 씬 연결을 먼저 확인한 뒤 카드, 진행, 저장 검사를 실행하고 결과를 기록합니다.
+    /// </summary>
     private void RunAll(string csvText, bool managerDisabled, string demoVariantId)
     {
         RunCase("테스트 씬과 CSV 연결", () =>
@@ -66,6 +72,9 @@ internal sealed class GameSessionChecks
             Debug.LogError(summary);
     }
 
+    /// <summary>
+    /// CSV의 좌우 선택지, 변형 ID의 고유성, 사건별 조회와 유산 변형을 확인합니다.
+    /// </summary>
     private void CheckCards()
     {
         List<CardData> cards = cardDatabase.GetAllCards();
@@ -97,6 +106,9 @@ internal sealed class GameSessionChecks
             "An unknown event should have no variants.");
     }
 
+    /// <summary>
+    /// 새 게임의 기본 스탯과 첫 체크포인트, 상태 목록과 저장 목록의 분리를 확인합니다.
+    /// </summary>
     private void CheckNewGame()
     {
         WithTemporarySave(path =>
@@ -123,6 +135,9 @@ internal sealed class GameSessionChecks
         });
     }
 
+    /// <summary>
+    /// 새 게임으로 기존 저장을 교체한 뒤 이어할 수 있는지와 쓰기 실패 시 기존 진행이 보존되는지 확인합니다.
+    /// </summary>
     private void CheckStartNewGame()
     {
         WithTemporarySave(path =>
@@ -167,6 +182,9 @@ internal sealed class GameSessionChecks
             "새 게임 저장 실패 시 기존 진행과 화면 상태를 유지해야 합니다.");
     }
 
+    /// <summary>
+    /// 수동 테스트 세이브가 세션을 다시 열어도 남고 실제 게임 저장과 분리되는지 확인합니다.
+    /// </summary>
     private void CheckTestDemoSavePersistence()
     {
         WithTemporarySave(gameSavePath =>
@@ -210,6 +228,9 @@ internal sealed class GameSessionChecks
         });
     }
 
+    /// <summary>
+    /// 기본 스탯, 합산, 범위 제한, 초기화와 값 복사를 확인합니다.
+    /// </summary>
     private void CheckStats()
     {
         Require(Stat.Default.Equals(new Stat(50, 50, 50, 50)), "기본 스탯은 모두 50이어야 합니다.");
@@ -224,6 +245,9 @@ internal sealed class GameSessionChecks
         Require(state.GetStats().faith == 50, "반환한 Stat 구조체는 복사본이어야 합니다.");
     }
 
+    /// <summary>
+    /// 플래그와 본 사건의 중복 방지, 초기화, 복사본이 원본과 분리되는지 확인합니다.
+    /// </summary>
     private void CheckFlagsAndHistory()
     {
         var state = new GameState();
@@ -255,6 +279,9 @@ internal sealed class GameSessionChecks
         Require(state.CopySeenEventIds().Count == 0, "null 기록으로 교체하면 비워야 합니다.");
     }
 
+    /// <summary>
+    /// 카드 지정과 해제 시 변경 알림이 전달되고 구독 해제 후에는 호출이 멈추는지 확인합니다.
+    /// </summary>
     private void CheckCardNotifications()
     {
         var state = new GameState();
@@ -279,6 +306,9 @@ internal sealed class GameSessionChecks
         Require(notifications == 2, "구독 해제 이후 호출되면 안 됩니다.");
     }
 
+    /// <summary>
+    /// 선택 결과가 스탯, 플래그, 사건 기록과 저장에 반영되고 카드 변경 알림이 한 번 발생하는지 확인합니다.
+    /// </summary>
     private void CheckSessionChoice(bool right, Stat initial, Stat expected, string expectedFlag)
     {
         WithTemporarySave(path =>
@@ -310,6 +340,9 @@ internal sealed class GameSessionChecks
         });
     }
 
+    /// <summary>
+    /// 좌우 선택에서 스탯이 한계에 도달하면 계층 첫 카드와 진입 상태로 돌아오는지 확인합니다.
+    /// </summary>
     private void CheckGameOver()
     {
         foreach (bool right in new[] { false, true })
@@ -338,6 +371,9 @@ internal sealed class GameSessionChecks
         }
     }
 
+    /// <summary>
+    /// 0턴, 2턴, 12턴에서 메인 사건 순서와 예약, 일반 사건 소비, 종료 저장을 확인합니다.
+    /// </summary>
     private void CheckTurnRules()
     {
         string header = fixtures.CsvHeader;
@@ -386,6 +422,9 @@ internal sealed class GameSessionChecks
         }
     }
 
+    /// <summary>
+    /// 일반 사건의 후보군이 현재 계층과 플래그, 본 사건 기록을 반영하고 사건별로 한 번씩 포함되는지 확인합니다.
+    /// </summary>
     private void CheckRandomCandidates()
     {
         string header = fixtures.CsvHeader;
@@ -406,6 +445,9 @@ internal sealed class GameSessionChecks
         state.AddFlag("zeal");
         CheckCandidates("B-S01", "B-S02", "B-S05", "B-M01");
 
+        /* <summary>
+        후보 인덱스를 하나씩 지정해 추첨으로 나올 수 있는 카드 변형이 예상 목록과 일치하는지 확인합니다.
+        </summary> */
         void CheckCandidates(params string[] expected)
         {
             var actual = new HashSet<string>();
@@ -420,6 +462,9 @@ internal sealed class GameSessionChecks
         }
     }
 
+    /// <summary>
+    /// 두 유산 분기에서 첫 카드와 체크포인트를 저장한 뒤 카드 변경과 계층 전환을 차례로 알리는지 확인합니다.
+    /// </summary>
     private void CheckCasteTransition()
     {
         foreach (bool right in new[] { false, true })
@@ -451,6 +496,9 @@ internal sealed class GameSessionChecks
         }
     }
 
+    /// <summary>
+    /// 고를 카드가 없는 계층을 건너뛰고 실제로 진입한 계층만 기록하고 알리는지 확인합니다.
+    /// </summary>
     private void CheckSkipCaste()
     {
         string header = fixtures.CsvHeader;
@@ -469,6 +517,9 @@ internal sealed class GameSessionChecks
             "실제 진입한 계층만 체크포인트를 남겨야 합니다.");
     }
 
+    /// <summary>
+    /// 저장 접근이나 쓰기 실패 시 진행이 보존되며, 재시도와 이벤트 중 중복 입력이 한 번만 처리되는지 확인합니다.
+    /// </summary>
     private void CheckSaveFailure()
     {
         var store = new MemorySaveStore();
@@ -516,6 +567,9 @@ internal sealed class GameSessionChecks
             "손상 저장 교체가 실패하면 초기 카드를 공개하면 안 됩니다.");
     }
 
+    /// <summary>
+    /// 현재 카드가 없을 때 좌우 선택을 해도 게임 상태와 저장 파일이 유지되는지 확인합니다.
+    /// </summary>
     private void CheckEmptyChoice()
     {
         WithTemporarySave(path =>
@@ -532,6 +586,9 @@ internal sealed class GameSessionChecks
         });
     }
 
+    /// <summary>
+    /// 저장된 스탯과 플래그, 사건 기록이 이후 메모리 상태 변경과 분리되는지 확인합니다.
+    /// </summary>
     private void CheckProgressSnapshot()
     {
         var store = new MemorySaveStore();
@@ -549,6 +606,9 @@ internal sealed class GameSessionChecks
         Require(saved.GetLastCheckpoint().stats.Equals(Stat.Default), "진입 스탯은 첫 체크포인트에 보존되어야 합니다.");
     }
 
+    /// <summary>
+    /// 체크포인트가 없는 저장에서 새 게임의 첫 카드와 체크포인트를 다시 저장하는지 확인합니다.
+    /// </summary>
     private void CheckMissingCheckpoint()
     {
         WithTemporarySave(path =>
@@ -566,6 +626,9 @@ internal sealed class GameSessionChecks
         });
     }
 
+    /// <summary>
+    /// 손상 JSON과 존재하지 않는 카드 변형을 거부하고 새 게임 저장으로 복구하는지 확인합니다.
+    /// </summary>
     private void CheckInvalidSaves()
     {
         WithTemporarySave(path =>
@@ -586,6 +649,9 @@ internal sealed class GameSessionChecks
         });
     }
 
+    /// <summary>
+    /// 구형 저장의 카드와 사건 기록을 복구하고 다음 선택부터 새 형식으로 저장하는지 확인합니다.
+    /// </summary>
     private void CheckLegacySave()
     {
         WithTemporarySave(path =>
@@ -609,6 +675,9 @@ internal sealed class GameSessionChecks
         });
     }
 
+    /// <summary>
+    /// 필수 진행 또는 체크포인트가 빠진 JSON을 불러올 때 예외가 발생하는지 확인합니다.
+    /// </summary>
     private void CheckIncompleteSave()
     {
         WithTemporarySave(path =>
@@ -630,6 +699,9 @@ internal sealed class GameSessionChecks
         });
     }
 
+    /// <summary>
+    /// 동작을 실행해 지정한 예외가 발생하는지 검사합니다.
+    /// </summary>
     private static void ExpectThrows<T>(Action action) where T : Exception
     {
         try { action(); }
@@ -637,6 +709,9 @@ internal sealed class GameSessionChecks
         throw new InvalidOperationException($"Expected {typeof(T).Name} was not thrown.");
     }
 
+    /// <summary>
+    /// 저장 덮어쓰기, 이어하기, 체크포인트 복원 후 재실행에서도 카드와 진행이 유지되는지 확인합니다.
+    /// </summary>
     private void CheckSaveAndRestore()
     {
         WithTemporarySave(path =>
@@ -691,11 +766,17 @@ internal sealed class GameSessionChecks
         });
     }
 
+    /// <summary>
+    /// 현재 테스트 세션에서 체크포인트를 복원하고 성공 여부를 검사합니다.
+    /// </summary>
     private void RestoreTestCheckpoint()
     {
         Require(testSession.RestoreCheckpoint(), "The temporary save must have a checkpoint.");
     }
 
+    /// <summary>
+    /// 지정 경로를 쓰는 테스트 세션을 열고 현재 상태를 반환합니다.
+    /// </summary>
     private GameState InitializeGame(string path)
     {
         testSession = fixtures.CreateSession(new SaveSystem(path));
@@ -704,6 +785,9 @@ internal sealed class GameSessionChecks
         return testState;
     }
 
+    /// <summary>
+    /// 현재 테스트 세션의 네 스탯을 예상값과 비교하고 차이가 있으면 보고합니다.
+    /// </summary>
     private void ExpectStats(Stat expected)
     {
         Stat actual = testState.GetStats();
@@ -713,6 +797,9 @@ internal sealed class GameSessionChecks
             $"got ({actual.faith}, {actual.order}, {actual.economy}, {actual.unrest}).");
     }
 
+    /// <summary>
+    /// 검사 하나를 실행해 성공 여부와 실패 사유를 결과 목록과 로그에 기록합니다.
+    /// </summary>
     private void RunCase(string name, Action check)
     {
         try
