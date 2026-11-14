@@ -14,6 +14,9 @@ public sealed class SaveData
     public List<CheckpointData> checkpoints = new();
     public ProgressData progress;
 
+    /// <summary>
+    /// 가장 최근 체크포인트를 반환합니다. 체크포인트가 없으면 <see langword="null"/>를 반환합니다.
+    /// </summary>
     public CheckpointData GetLastCheckpoint()
     {
         return checkpoints.Count == 0 ? null : checkpoints[checkpoints.Count - 1];
@@ -46,7 +49,13 @@ public sealed class ProgressData
 public interface ISaveStore
 {
     bool HasSave { get; }
+    /// <summary>
+    /// 저장 데이터를 불러옵니다. 저장이 없으면 <see langword="null"/>를 반환합니다.
+    /// </summary>
     SaveData LoadOrNull();
+    /// <summary>
+    /// 전달받은 진행 데이터를 저장소에 기록합니다.
+    /// </summary>
     void Save(SaveData data);
 }
 
@@ -55,12 +64,18 @@ public sealed class SaveSystem : ISaveStore
     public string SavePath { get; }
     public bool HasSave => File.Exists(SavePath);
 
+    /// <summary>
+    /// 지정 경로 또는 Unity의 기본 영구 데이터 경로에서 사용할 저장 파일의 절대 경로를 정합니다.
+    /// </summary>
     public SaveSystem(string savePath = null)
     {
         SavePath = Path.GetFullPath(savePath
             ?? Path.Combine(Application.persistentDataPath, "save.json"));
     }
 
+    /// <summary>
+    /// 진행 데이터의 유효성을 검증하고 임시 JSON 파일을 써서 기존 저장을 교체하거나 새 저장을 만듭니다.
+    /// </summary>
     public void Save(SaveData data)
     {
         if (data == null)
@@ -86,6 +101,9 @@ public sealed class SaveSystem : ISaveStore
         }
     }
 
+    /// <summary>
+    /// 저장 JSON을 읽고 형식을 검증합니다. 파일이 없으면 <see langword="null"/>를 반환하고 구형 저장은 카드 변형 ID를 추출합니다.
+    /// </summary>
     public SaveData LoadOrNull()
     {
         string json;
@@ -136,6 +154,9 @@ public sealed class SaveSystem : ISaveStore
         }
     }
 
+    /// <summary>
+    /// 저장 버전에 맞춰 진행과 체크포인트의 필수 항목, 스탯과 종료 상태가 유효한지 검사합니다.
+    /// </summary>
     private static void ValidateDocument(JObject document, bool legacy)
     {
         if (document["checkpoints"] is not JArray checkpoints || checkpoints.Count == 0
@@ -200,6 +221,9 @@ public sealed class SaveSystem : ISaveStore
         }
     }
 
+    /// <summary>
+    /// 네 스탯이 모두 정수이며 0~100 범위에 있는지 검사합니다.
+    /// </summary>
     private static void ValidateStats(JToken stats)
     {
         if (stats is not JObject values)
@@ -213,6 +237,9 @@ public sealed class SaveSystem : ISaveStore
         }
     }
 
+    /// <summary>
+    /// 지정 JSON 필드를 정수로 읽고 필드의 타입이 정수가 아니면 예외를 발생시킵니다.
+    /// </summary>
     private static int ReadInt(JObject value, string field)
     {
         JToken token = value[field];
@@ -221,6 +248,9 @@ public sealed class SaveSystem : ISaveStore
         return (int)token;
     }
 
+    /// <summary>
+    /// JSON 값이 배열이며 모든 항목이 문자열인지 검사합니다.
+    /// </summary>
     private static void ValidateStrings(JToken token)
     {
         if (token is not JArray list)
@@ -233,11 +263,17 @@ public sealed class SaveSystem : ISaveStore
         }
     }
 
+    /// <summary>
+    /// JSON 값이 비어 있지 않은 문자열인지 확인합니다.
+    /// </summary>
     private static bool HasText(JToken token)
     {
         return token?.Type == JTokenType.String && !string.IsNullOrWhiteSpace((string)token);
     }
 
+    /// <summary>
+    /// 버전이 없는 구형 저장에 지정한 새 형식 필드가 섞여 있으면 예외를 발생시킵니다.
+    /// </summary>
     private static void RequireAbsent(JObject value, params string[] fields)
     {
         foreach (string field in fields)
@@ -247,6 +283,9 @@ public sealed class SaveSystem : ISaveStore
         }
     }
 
+    /// <summary>
+    /// 저장 실패 후 임시 파일 삭제를 시도합니다. 삭제 중 발생한 입출력 및 접근 오류는 무시합니다.
+    /// </summary>
     private static void TryDeleteTemporaryFile(string path)
     {
         try

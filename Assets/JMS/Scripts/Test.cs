@@ -33,11 +33,17 @@ public sealed class Test : MonoBehaviour
     private const string PendingFeatures =
         "수동 확인은 테스트 전용 세이브를 사용합니다. 자동 검사는 실행마다 별도의 임시 저장을 사용합니다.";
 
+    /// <summary>
+    /// 테스트 씬이 시작되면 자동 검사를 실행하고 수동·자동 테스트 화면을 구성합니다.
+    /// </summary>
     private void Start()
     {
         ShowDashboard(RunAndDisplayChecks());
     }
 
+    /// <summary>
+    /// 자동 검사 결과를 저장해 화면을 갱신하고 수동 테스트에서 사용할 데이터를 반환합니다.
+    /// </summary>
     private TestSessionData RunAndDisplayChecks()
     {
         var report = GameSessionChecks.Run(
@@ -47,6 +53,9 @@ public sealed class Test : MonoBehaviour
         return report.data;
     }
 
+    /// <summary>
+    /// 검사 통과·실패 수와 각 검사 결과를 화면에 표시합니다.
+    /// </summary>
     private void RefreshReport()
     {
         if (reportSummary != null)
@@ -64,6 +73,9 @@ public sealed class Test : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 카드 변경 구독을 해제하고 테스트 세션과 동적으로 만든 글꼴을 정리합니다.
+    /// </summary>
     private void OnDestroy()
     {
         if (demoSession != null)
@@ -75,6 +87,9 @@ public sealed class Test : MonoBehaviour
             Destroy(dashboardFont);
     }
 
+    /// <summary>
+    /// 자동 검사 결과와 수동 테스트 화면을 만들고 버튼, 입력, 카드 변경 알림을 연결합니다.
+    /// </summary>
     private void ShowDashboard(TestSessionData data)
     {
         dashboardFont = Font.CreateDynamicFontFromOSFont(new[] { "Malgun Gothic", "Arial" }, 18);
@@ -147,6 +162,9 @@ public sealed class Test : MonoBehaviour
         AddSaveInspector(background, content);
     }
 
+    /// <summary>
+    /// 테스트 새로하기와 이어하기 버튼을 만들고 수동 화면과 시작 메뉴를 전환합니다.
+    /// </summary>
     private void AddStartMenu(RectTransform content, RectTransform demo)
     {
         var menu = Panel(content, "시작 메뉴", 0.40f, 0.05f, 0.96f, 0.875f);
@@ -154,6 +172,9 @@ public sealed class Test : MonoBehaviour
         var menuStatus = Label(menu, string.Empty, 18, 0.10f, 0.22f, 0.90f, 0.34f);
         menuStatus.alignment = TextAnchor.MiddleCenter;
 
+        /* <summary>
+        새 게임 또는 이어하기를 실행한 뒤 시작 메뉴를 닫고 수동 테스트 화면을 엽니다.
+        </summary> */
         void OpenDemo(Action<TestDemoSession> open, string status)
         {
             RunDemoAction(open, status);
@@ -169,6 +190,9 @@ public sealed class Test : MonoBehaviour
         savedCardTitle.gameObject.name = "Saved Card Title";
         savedCardTitle.alignment = TextAnchor.MiddleCenter;
 
+        /* <summary>
+        테스트 세이브 상태에 따라 버튼과 저장 카드 제목을 갱신하고 시작 메뉴를 표시합니다.
+        </summary> */
         void ShowStartMenu()
         {
             newGame.interactable = demoSession != null;
@@ -188,6 +212,9 @@ public sealed class Test : MonoBehaviour
         ShowStartMenu();
     }
 
+    /// <summary>
+    /// 동작 직전과 현재 저장 파일을 나란히 보는 패널을 구성하고 화면 전환 버튼을 연결합니다.
+    /// </summary>
     private void AddSaveInspector(RectTransform background, RectTransform content)
     {
         var inspector = Panel(background, "저장 파일", 0.04f, 0.05f, 0.96f, 0.875f);
@@ -224,6 +251,9 @@ public sealed class Test : MonoBehaviour
         toggleLabel = toggle.GetComponentInChildren<UnityEngine.UI.Text>();
     }
 
+    /// <summary>
+    /// 최근 동작 직전과 현재 파일의 내용을 저장 파일 패널에 표시합니다.
+    /// </summary>
     private void RefreshSaveInspector()
     {
         if (saveBeforeText != null)
@@ -232,6 +262,9 @@ public sealed class Test : MonoBehaviour
             saveCurrentText.text = demoSession?.CurrentSave ?? "저장 파일이 없습니다.";
     }
 
+    /// <summary>
+    /// 제목과 스크롤 가능한 텍스트 영역을 만들고 스크롤과 텍스트 컴포넌트를 반환합니다.
+    /// </summary>
     private (UnityEngine.UI.ScrollRect scroll, UnityEngine.UI.Text text) MakeSavePane(
         RectTransform parent, string heading, float left, float right)
     {
@@ -269,6 +302,9 @@ public sealed class Test : MonoBehaviour
         return (scroll, text);
     }
 
+    /// <summary>
+    /// 동작 전 스탯을 기록하고 수동 세션에서 요청을 실행한 뒤 화면을 갱신합니다.
+    /// </summary>
     private void RunDemoAction(Action<TestDemoSession> action, string status)
     {
         if (demoSession == null)
@@ -279,12 +315,18 @@ public sealed class Test : MonoBehaviour
         ShowDemoState(before, status);
     }
 
+    /// <summary>
+    /// 카드 변경 알림 횟수를 늘리고 새 카드 정보를 화면에 표시합니다.
+    /// </summary>
     private void OnDemoCardChanged()
     {
         cardChangedCount++;
         RefreshDemoCard(demoSession.State.GetCurrentCard());
     }
 
+    /// <summary>
+    /// 카드의 제목, 화자, 대사, 선택지를 표시하고 선택 버튼의 활성 상태를 갱신합니다.
+    /// </summary>
     private void RefreshDemoCard(CardData card)
     {
         demoCardTitle.text = card == null ? "현재 카드 없음" : $"현재 카드  {card.variantId} / {card.title}";
@@ -297,6 +339,9 @@ public sealed class Test : MonoBehaviour
         rightButton.interactable = card?.rightChoice != null;
     }
 
+    /// <summary>
+    /// 동작 전후 스탯, 현재 카드, 플래그와 사건 기록을 표시하고 저장 보기 내용을 갱신합니다.
+    /// </summary>
     private void ShowDemoState(Stat before, string status)
     {
         GameState state = demoSession.State;
@@ -318,12 +363,18 @@ public sealed class Test : MonoBehaviour
         RefreshSaveInspector();
     }
 
+    /// <summary>
+    /// 지정한 스탯의 이전 값과 현재 값을 각 라벨에 표시합니다.
+    /// </summary>
     private void ShowStat(int index, int previous, int current)
     {
         previousStatValues[index].text = $"이전 {previous}";
         currentStatValues[index].text = current.ToString();
     }
 
+    /// <summary>
+    /// 클릭 동작을 연결한 버튼을 만들고 동작 중 오류가 발생하면 화면과 로그에 표시합니다.
+    /// </summary>
     private UnityEngine.UI.Button MakeButton(Transform parent, string text, float left, float bottom, float right,
         float top, UnityEngine.Events.UnityAction click, UnityEngine.UI.Text errorLabel = null)
     {
@@ -353,6 +404,9 @@ public sealed class Test : MonoBehaviour
         return button;
     }
 
+    /// <summary>
+    /// 지정한 앵커 영역에 배경 이미지를 가진 UI 패널을 만듭니다.
+    /// </summary>
     private static RectTransform Panel(Transform parent, string name, float left, float bottom, float right, float top)
     {
         RectTransform rect = MakeRect(parent, name, left, bottom, right, top);
@@ -362,6 +416,9 @@ public sealed class Test : MonoBehaviour
         return rect;
     }
 
+    /// <summary>
+    /// 테스트 화면의 공통 글꼴과 색상을 적용한 텍스트 라벨을 만듭니다.
+    /// </summary>
     private UnityEngine.UI.Text Label(Transform parent, string text, int size, float left, float bottom, float right, float top)
     {
         var label = MakeRect(parent, "Text", left, bottom, right, top).gameObject.AddComponent<UnityEngine.UI.Text>();
@@ -377,6 +434,9 @@ public sealed class Test : MonoBehaviour
         return label;
     }
 
+    /// <summary>
+    /// 부모 아래에 지정한 앵커 범위를 쓰는 UI 영역을 만듭니다.
+    /// </summary>
     private static RectTransform MakeRect(Transform parent, string name, float left, float bottom, float right, float top)
     {
         var rect = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
