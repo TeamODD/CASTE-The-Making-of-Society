@@ -44,6 +44,8 @@ public sealed class ProgressData
     public List<string> flags = new();
     public string currentVariantId;
     public bool isFinished;
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public string endingId;
 }
 
 public interface ISaveStore
@@ -83,16 +85,24 @@ public sealed class SaveSystem : ISaveStore
 
         JObject document = JObject.FromObject(data);
         ValidateDocument(document, legacy: false);
-        Directory.CreateDirectory(Path.GetDirectoryName(SavePath));
-        string tempPath = SavePath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        WriteJsonAtomically(SavePath, document);
+    }
+
+    /// <summary>
+    /// JSON을 같은 디렉터리의 임시 파일에 쓴 뒤 대상 파일을 교체합니다.
+    /// </summary>
+    internal static void WriteJsonAtomically(string path, JObject document)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path));
+        string tempPath = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
 
         try
         {
             File.WriteAllText(tempPath, document.ToString(Formatting.Indented));
-            if (File.Exists(SavePath))
-                File.Replace(tempPath, SavePath, null);
+            if (File.Exists(path))
+                File.Replace(tempPath, path, null);
             else
-                File.Move(tempPath, SavePath);
+                File.Move(tempPath, path);
         }
         catch
         {
@@ -168,7 +178,7 @@ public sealed class SaveSystem : ISaveStore
         ValidateStats(progress["stats"]);
         if (legacy)
         {
-            RequireAbsent(progress, "casteOrder", "turnsUsedInCaste", "turnsPerCaste", "currentVariantId", "isFinished");
+            RequireAbsent(progress, "casteOrder", "turnsUsedInCaste", "turnsPerCaste", "currentVariantId", "isFinished", "endingId");
             JToken legacyCard = progress["currentCard"];
             if (legacyCard != null && legacyCard.Type != JTokenType.Null && legacyCard is not JObject)
                 throw new InvalidDataException("The legacy current card must be an object or null.");
@@ -199,6 +209,10 @@ public sealed class SaveSystem : ISaveStore
             {
                 throw new InvalidDataException("The current card does not match the saved completion state.");
             }
+
+            JToken ending = progress["endingId"];
+            if (ending != null && ending.Type != JTokenType.Null && (!(bool)finished || !HasText(ending)))
+                throw new InvalidDataException("A saved ending ID requires finished progress.");
         }
 
         foreach (JToken item in checkpoints)

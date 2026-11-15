@@ -5,6 +5,16 @@ public class GameState
 {
     public event Action CurrentCardChanged;
 
+    /// <summary>
+    /// 종료된 진행의 게임오버 엔딩입니다. 진행 중이거나 일반 종료면 null입니다.
+    /// </summary>
+    public EndingData Ending { get; internal set; }
+
+    /// <summary>
+    /// 게임오버 또는 마지막 계층 완료로 현재 진행이 종료되었는지 나타냅니다.
+    /// </summary>
+    public bool IsFinished { get; internal set; }
+
     private Stat stats;
     private readonly List<string> flags;
     private readonly List<string> cardHist; // 전체 계층 기록

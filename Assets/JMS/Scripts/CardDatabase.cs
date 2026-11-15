@@ -65,6 +65,10 @@ internal static class CardCsvParser
 
         csv.Read();
         csv.ReadHeader();
+        string leftPublicOpColumn = csv.HeaderRecord.Contains("left_publicOp_delta")
+            ? "left_publicOp_delta" : "left_unrest_delta";
+        string rightPublicOpColumn = csv.HeaderRecord.Contains("right_publicOp_delta")
+            ? "right_publicOp_delta" : "right_unrest_delta";
 
         while (csv.Read())
         {
@@ -95,7 +99,7 @@ internal static class CardCsvParser
                         GetInt(csv, "left_faith_delta"),
                         GetInt(csv, "left_order_delta"),
                         GetInt(csv, "left_economy_delta"),
-                        GetInt(csv, "left_unrest_delta")
+                        GetInt(csv, leftPublicOpColumn)
                     )
                 },
 
@@ -109,7 +113,7 @@ internal static class CardCsvParser
                         GetInt(csv, "right_faith_delta"),
                         GetInt(csv, "right_order_delta"),
                         GetInt(csv, "right_economy_delta"),
-                        GetInt(csv, "right_unrest_delta")
+                        GetInt(csv, rightPublicOpColumn)
                     )
                 }
             };

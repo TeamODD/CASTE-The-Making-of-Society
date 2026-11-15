@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -12,9 +13,9 @@ public class GameManager : MonoBehaviour
     public GameState State => session != null && session.CasteOrder > 0 ? session.State : null;
 
     /// <summary>
-    /// 로컬 저장 파일이 있는지 확인합니다. 저장 데이터의 유효성은 <see cref="ResumeGame"/>에서 확인합니다.
+    /// 타이틀의 이어하기 버튼을 활성화할 수 있는지 확인합니다. 종료된 회차는 이어할 수 없습니다.
     /// </summary>
-    public bool CanResume => GetSaveStore().HasSave;
+    public bool CanResume => GameSession.HasResumableSave(GetSaveStore());
 
     /// <summary>
     /// 새 게임이나 이어하기가 성공하면 초기 화면에 표시할 게임 상태를 전달합니다.
@@ -25,6 +26,7 @@ public class GameManager : MonoBehaviour
     /// <summary>
     /// 새 게임, 이어하기, 선택 처리 또는 체크포인트 복원이 완료되면 갱신된 게임 상태를 전달합니다.
     /// 화면에 표시할 카드와 스탯은 전달받은 상태에서 읽습니다.
+    /// <see cref="GameState.IsFinished"/>가 참이면 엔딩 화면을 표시합니다.
     /// </summary>
     public event Action<GameState> GameStateChanged;
 
@@ -35,8 +37,19 @@ public class GameManager : MonoBehaviour
     public event Action<int, int> CasteChanged;
 
     private ISaveStore saveStore;
+    private EndingDatabase endings;
+    private EndingArchiveStore endingArchive;
     private GameSession session;
     private bool openingGame;
+
+    /// <summary>
+    /// 게임 세션을 열기 전에도 계층별 엔딩 도감을 조회합니다.
+    /// 잠긴 항목도 목록에 포함되며 ID, 본문과 이미지는 null입니다.
+    /// </summary>
+    public IReadOnlyList<EndingCollectionGroup> GetEndingCollection()
+    {
+        return GetEndingDatabase().GetCollection(GetEndingArchive().LoadSeenIds());
+    }
 
     /// <summary>
     /// 매니저가 파괴될 때 세션의 카드 변경과 계층 전환 이벤트 구독을 해제합니다.
@@ -51,7 +64,8 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 첫 계층의 첫 카드와 체크포인트를 저장하고 새 게임을 시작합니다. 기존 저장은 새 진행으로 교체됩니다.
+    /// 브라만부터 새 게임을 시작합니다. 엔딩 화면의 새로하기 버튼에서 호출할 수 있습니다.
+    /// 첫 카드와 체크포인트를 저장한 뒤 기존 진행을 교체합니다.
     /// </summary>
     public void StartNewGame()
     {
@@ -59,11 +73,21 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 로컬 저장에서 진행을 불러옵니다. 저장 파일이 없으면 현재 상태를 유지하고, 손상된 파일은 새 진행으로 교체합니다.
+    /// 로컬 저장에서 진행 중인 회차를 불러옵니다. 종료된 회차는 타이틀에서 이어할 수 없습니다.
     /// </summary>
     public void ResumeGame()
     {
         OpenGame((game, turnLimit) => game.TryResume(turnLimit));
+    }
+
+    /// <summary>
+    /// 엔딩 화면의 이어하기를 처리합니다. 종료한 계층의 첫 카드와 진입 상태를 복원해 저장합니다.
+    /// 복원에 성공하면 <see cref="GameStateChanged"/>로 갱신된 상태를 전달합니다.
+    /// </summary>
+    public void ResumeFromEnding()
+    {
+        if (!openingGame)
+            session?.ResumeFromEnding();
     }
 
     /// <summary>
@@ -117,7 +141,8 @@ public class GameManager : MonoBehaviour
                     throw new InvalidOperationException("GameManager requires an event CSV.");
 
                 var cardDatabase = new CardDatabase(csvFile.text);
-                session = new GameSession(cardDatabase, new CardSelector(), GetSaveStore(), TurnsPerCaste);
+                session = new GameSession(cardDatabase, new CardSelector(), GetSaveStore(), TurnsPerCaste,
+                    GetEndingDatabase(), GetEndingArchive());
                 session.State.CurrentCardChanged += PublishStateChanged;
                 session.CasteChanged += PublishCasteChanged;
             }
@@ -148,6 +173,22 @@ public class GameManager : MonoBehaviour
     private ISaveStore GetSaveStore()
     {
         return saveStore ??= CreateSaveStore();
+    }
+
+    /// <summary>
+    /// 게임 진행과 도감에서 같은 엔딩 CSV를 사용합니다.
+    /// </summary>
+    private EndingDatabase GetEndingDatabase()
+    {
+        return endings ??= EndingDatabase.LoadDefault();
+    }
+
+    /// <summary>
+    /// 도감 조회와 엔딩 기록에서 사용할 저장소를 반환합니다.
+    /// </summary>
+    private EndingArchiveStore GetEndingArchive()
+    {
+        return endingArchive ??= new EndingArchiveStore();
     }
 
     /// <summary>
