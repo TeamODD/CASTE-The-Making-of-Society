@@ -4755,7 +4755,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -5698,6 +5698,7 @@ GameObject:
   - component: {fileID: 1409447900}
   - component: {fileID: 1409447899}
   - component: {fileID: 1409447898}
+  - component: {fileID: 1409447902}
   m_Layer: 0
   m_Name: EndingScreen
   m_TagString: Untagged
@@ -5768,7 +5769,19 @@ MonoBehaviour:
       m_Calls: []
   onEndingFinished:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1409447902}
+        m_TargetAssemblyTypeName: Caste.Scenes.SceneLoadAction, Assembly-CSharp
+        m_MethodName: Load
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1409447900
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5806,6 +5819,19 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!114 &1409447902
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1409447896}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 422a165d87fe122449c19e955cff393f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Caste.Scenes.SceneLoadAction
+  _sceneName: JSW_Title
 --- !u!1 &1476495583
 GameObject:
   m_ObjectHideFlags: 0
