@@ -68,7 +68,7 @@ namespace Caste.Integration.EditorTools
                     header = fileHeader;
                     sb.Append(header).Append("\r\n");
                 }
-                else if (fileHeader != header)
+                else if (NormalizeHeader(fileHeader, config) != NormalizeHeader(header, config))
                 {
                     Debug.LogError($"[EventCsvMerger] {src.name}의 헤더(열 구성)가 첫 번째 CSV와 달라서 합치지 않았습니다.", src);
                     return false;
@@ -97,6 +97,16 @@ namespace Caste.Integration.EditorTools
             AssetDatabase.ImportAsset(outPath);
             Debug.Log($"[EventCsvMerger] {sources.Length}개 CSV → {rows}줄로 합침: {outPath}");
             return true;
+        }
+
+        // 같은 뜻의 열 이름(예: unrest ↔ publicOp)을 하나로 맞춘 뒤 비교 → 열 이름만 바뀐 경우 팀원 파일을 고치지 않고 합칠 수 있다
+        private static string NormalizeHeader(string header, EventCsvMergeConfig config)
+        {
+            if (config.headerAliases == null) return header;
+            foreach (var alias in config.headerAliases)
+                if (!string.IsNullOrEmpty(alias.from) && alias.to != null)
+                    header = header.Replace(alias.from, alias.to);
+            return header;
         }
 
         private static EventCsvMergeConfig[] LoadConfigs() =>
