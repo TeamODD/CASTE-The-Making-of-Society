@@ -18,5 +18,19 @@ namespace Caste.Integration.EditorTools
 
         [Tooltip("켜면 소스 CSV가 바뀔 때마다 자동으로 다시 합친다. 끄면 메뉴 CASTE > 이벤트 CSV 다시 합치기로 수동 실행.")]
         public bool autoRebuild = true;
+
+        [Tooltip("이름만 바뀐 같은 열을 같은 열로 본다. (예: 팀원 CSV는 publicOp, 우리 CSV는 unrest)\n" +
+                 "From이 들어간 열 이름을 To로 바꿔서 비교한다. 결과 파일은 첫 번째 CSV의 열 이름을 쓴다.")]
+        public HeaderAlias[] headerAliases =
+        {
+            new HeaderAlias { from = "_unrest_delta", to = "_publicOp_delta" },
+        };
+
+        [System.Serializable]
+        public struct HeaderAlias
+        {
+            public string from;
+            public string to;
+        }
     }
 }
