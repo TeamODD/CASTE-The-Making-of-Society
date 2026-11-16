@@ -8,11 +8,16 @@ public sealed class GameSession
     private readonly CardDatabase cardDatabase;
     private readonly CardSelector selector;
     private readonly ISaveStore saveStore;
+    private readonly EndingDatabase endings;
+    private readonly EndingArchiveStore endingArchive;
     private readonly List<CardData> cards;
     private readonly int[] casteOrders;
     private readonly int initialTurnLimit;
     private SaveData saveData;
     private bool processingInput;
+    private string preparedEndingCaste;
+    private (Stat stats, EndingData ending) leftEnding;
+    private (Stat stats, EndingData ending) rightEnding;
 
     public event Action<int, int> CasteChanged;
 
@@ -27,15 +32,37 @@ public sealed class GameSession
         CardDatabase cardDatabase,
         CardSelector selector,
         ISaveStore saveStore,
-        int turnsPerCaste = 12)
+        int turnsPerCaste = 12,
+        EndingDatabase endings = null,
+        EndingArchiveStore endingArchive = null)
     {
         this.cardDatabase = cardDatabase ?? throw new ArgumentNullException(nameof(cardDatabase));
         this.selector = selector ?? throw new ArgumentNullException(nameof(selector));
         this.saveStore = saveStore ?? throw new ArgumentNullException(nameof(saveStore));
+        this.endings = endings ?? EndingDatabase.LoadDefault();
+        this.endingArchive = endingArchive;
         initialTurnLimit = Math.Max(0, turnsPerCaste);
         cards = cardDatabase.GetAllCards();
         casteOrders = cards.Select(card => card.casteOrder)
             .Where(order => order > 0).Distinct().OrderBy(order => order).ToArray();
+    }
+
+    /// <summary>
+    /// 타이틀에서 이어할 수 있는 진행이 있는지 확인합니다. 손상된 저장은 기존 복구 경로에서 처리합니다.
+    /// </summary>
+    internal static bool HasResumableSave(ISaveStore store)
+    {
+        if (!store.HasSave)
+            return false;
+
+        try
+        {
+            return store.LoadOrNull()?.progress is { isFinished: false };
+        }
+        catch (InvalidDataException)
+        {
+            return true;
+        }
     }
 
     /// <summary>
@@ -47,7 +74,7 @@ public sealed class GameSession
     }
 
     /// <summary>
-    /// 저장된 진행을 엽니다. 저장이 없으면 지정한 턴 한도로 새 게임을 시작합니다.
+    /// 진행 중인 저장을 엽니다. 저장이 없으면 지정한 턴 한도로 새 게임을 시작합니다.
     /// </summary>
     public bool StartOrResume(int turnsPerCaste)
     {
@@ -55,7 +82,7 @@ public sealed class GameSession
     }
 
     /// <summary>
-    /// 저장된 진행을 엽니다. 저장이 없으면 새 게임을 만들지 않고 실패를 반환합니다.
+    /// 진행 중인 저장을 엽니다. 저장이 없거나 종료된 회차면 실패를 반환합니다.
     /// </summary>
     public bool TryResume(int turnsPerCaste)
     {
@@ -114,6 +141,9 @@ public sealed class GameSession
             next = saveStore.LoadOrNull();
             if (next != null)
             {
+                if (next.progress.isFinished)
+                    return false;
+
                 if (next.schemaVersion == null)
                     next = PrepareLegacySave(next, turnsPerCaste, out card, out saveOnStart);
                 else
@@ -159,7 +189,7 @@ public sealed class GameSession
     }
 
     /// <summary>
-    /// 현재 카드의 선택 효과를 계산하고 다음 카드 또는 계층을 결정합니다. 스탯이 한계에 닿으면 체크포인트를 복원하고, 정상 진행은 저장한 뒤 알립니다.
+    /// 선택 효과를 적용하고 현재 계층의 엔딩 또는 다음 카드를 결정한 뒤 결과를 저장합니다.
     /// </summary>
     public void Choose(bool isRight)
     {
@@ -174,11 +204,12 @@ public sealed class GameSession
             int previousCaste = CasteOrder;
             var updated = new GameState(State.GetStats(), State.CopyFlags(), State.CopySeenEventIds());
             updated.ApplyStatDelta(choice.delta);
-            if (updated.GetStats().IsAtLimit())
-            {
-                RestoreLastCheckpoint();
-                return;
-            }
+            Stat selectedStats = updated.GetStats();
+            var preview = isRight ? rightEnding : leftEnding;
+            // 외부에서 스탯이나 카드 조건을 바꾼 경우 현재 값으로 다시 판정합니다.
+            EndingData ending = preparedEndingCaste == currentCard.casteCode && preview.stats.Equals(selectedStats)
+                ? preview.ending
+                : endings.Evaluate(currentCard.casteCode, selectedStats);
 
             updated.AddFlag(choice.flagOnSelect);
             updated.MarkEventSeen(currentCard.eventId);
@@ -189,18 +220,24 @@ public sealed class GameSession
                 casteOrder = previousCaste,
                 turnsUsedInCaste = used,
                 turnsPerCaste = limit,
-                stats = updated.GetStats(),
+                stats = selectedStats,
                 flags = updated.CopyFlags(),
                 seenEventIds = updated.CopySeenEventIds()
             });
 
-            CardData card = SelectCard(next);
-            if (card == null)
-                card = EnterNextCaste(next, previousCaste);
+            CardData card = null;
+            if (ending == null)
+            {
+                card = SelectCard(next) ?? EnterNextCaste(next, previousCaste);
+                if (card == null)
+                    ending = endings.EvaluateCompletion(currentCard.casteCode, selectedStats);
+            }
+
+            next.progress.endingId = ending?.Id;
             next.progress.currentVariantId = card?.variantId;
             next.progress.isFinished = card == null;
 
-            SaveAndPublish(next, card);
+            SaveAndPublish(next, card, ending);
             if (card != null && previousCaste != next.progress.casteOrder)
                 CasteChanged?.Invoke(previousCaste, next.progress.casteOrder);
         }
@@ -208,6 +245,14 @@ public sealed class GameSession
         {
             processingInput = false;
         }
+    }
+
+    /// <summary>
+    /// 종료된 게임에서 해당 계층의 체크포인트로 복귀를 시도합니다.
+    /// </summary>
+    public bool ResumeFromEnding()
+    {
+        return State.IsFinished && RestoreCheckpoint();
     }
 
     /// <summary>
@@ -404,23 +449,53 @@ public sealed class GameSession
     }
 
     /// <summary>
-    /// 다음 진행을 저장하고, 저장에 성공한 뒤 게임 상태에 반영합니다.
+    /// 진행을 저장하고 확정된 엔딩을 도감에 기록한 뒤 게임 상태를 갱신합니다.
     /// </summary>
-    private void SaveAndPublish(SaveData next, CardData card)
+    private void SaveAndPublish(SaveData next, CardData card, EndingData ending = null)
     {
         saveStore.Save(next);
+        if (ending != null && endingArchive != null)
+        {
+            try
+            {
+                endingArchive.RecordSeen(ending.Id);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
+            {
+                UnityEngine.Debug.LogError($"[EndingArchive] Could not record ending '{ending.Id}': {exception}");
+            }
+        }
+
         PublishState(next, card);
     }
 
     /// <summary>
-    /// 저장 데이터를 세션에 반영하고 스탯, 플래그, 사건 기록, 현재 카드 순서로 상태를 갱신합니다.
+    /// 저장 데이터를 세션에 반영하고 엔딩과 진행 상태를 갱신한 뒤 카드 변경을 알립니다.
     /// </summary>
     private void PublishState(SaveData next, CardData card)
     {
+        EndingData ending = next.progress.endingId == null ? null : endings.GetById(next.progress.endingId);
         saveData = next;
+        State.IsFinished = next.progress.isFinished;
+        State.Ending = ending;
         State.SetStats(next.progress.stats);
         State.SetFlags(next.progress.flags);
         State.SetSeenEventIds(next.progress.seenEventIds);
+        preparedEndingCaste = card?.casteCode;
+        leftEnding = PrepareEnding(preparedEndingCaste, card?.leftChoice, next.progress.stats);
+        rightEnding = PrepareEnding(preparedEndingCaste, card?.rightChoice, next.progress.stats);
         State.UpdateCurrentCard(card);
+    }
+
+    /// <summary>
+    /// 현재 카드의 한 방향을 선택했을 때 적용될 스탯과 엔딩을 미리 계산합니다.
+    /// </summary>
+    private (Stat stats, EndingData ending) PrepareEnding(string caste, ChoiceData choice, Stat currentStats)
+    {
+        if (choice == null)
+            return default;
+
+        Stat projected = (currentStats + choice.delta).Clamp();
+        return (projected, endings.Evaluate(caste, projected));
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using static TestSessionData;
 
@@ -6,6 +7,8 @@ internal sealed class TestDemoSession : IDisposable
 {
     private readonly TestSessionData data;
     private readonly SaveSystem store;
+    private readonly EndingDatabase endings;
+    private readonly EndingArchiveStore archive;
     private readonly Func<int> readTurnLimit;
     private readonly GameSession session;
 
@@ -17,17 +20,28 @@ internal sealed class TestDemoSession : IDisposable
         this.data = data;
         this.readTurnLimit = readTurnLimit;
         store = new SaveSystem(Path.Combine(persistentDataPath, "TestDemo", "save.json"));
-        session = data.CreateSession(store);
+        archive = new EndingArchiveStore(Path.Combine(Path.GetDirectoryName(store.SavePath), "archive.json"));
+        endings = EndingDatabase.LoadDefault();
+        session = data.CreateSession(store, endingArchive: archive, endings: endings);
         session.State.CurrentCardChanged += ForwardCardChange;
     }
 
     public string SavePath => store.SavePath;
     public bool HasSave => store.HasSave;
+    public bool CanResume => GameSession.HasResumableSave(store);
     public string SaveBeforeAction { get; private set; }
     public string CurrentSave => HasSave ? File.ReadAllText(SavePath) : null;
     public GameState State => session.CasteOrder > 0 ? session.State : null;
 
     public event Action CurrentCardChanged;
+
+    /// <summary>
+    /// 수동 테스트에서 해금한 엔딩을 계층별 도감으로 반환합니다.
+    /// </summary>
+    public IReadOnlyList<EndingCollectionGroup> GetEndingCollection()
+    {
+        return endings.GetCollection(archive.LoadSeenIds());
+    }
 
     /// <summary>
     /// 테스트 세이브의 현재 카드 제목을 조회합니다. 제목을 찾거나 저장을 읽을 수 없으면 <see langword="null"/>를 반환합니다.
@@ -80,7 +94,16 @@ internal sealed class TestDemoSession : IDisposable
     public void ResumeGame()
     {
         SaveBeforeAction = CurrentSave;
-        Require(session.TryResume(readTurnLimit()), "이어할 테스트 저장 파일이 없습니다.");
+        Require(session.TryResume(readTurnLimit()), "이어할 진행 중인 테스트 세이브가 없습니다.");
+    }
+
+    /// <summary>
+    /// 종료된 테스트 진행에서 그 계층의 체크포인트를 복원합니다.
+    /// </summary>
+    public void ResumeFromEnding()
+    {
+        SaveBeforeAction = CurrentSave;
+        Require(session.ResumeFromEnding(), "이어할 엔딩 체크포인트가 없습니다.");
     }
 
     /// <summary>
@@ -95,6 +118,7 @@ internal sealed class TestDemoSession : IDisposable
         Require(save != null, "이어할 테스트 저장 파일이 없습니다.");
         save.progress.currentVariantId = data.DemoCard.variantId;
         save.progress.isFinished = false;
+        save.progress.endingId = null;
         store.Save(save);
         session.StartOrResume(readTurnLimit());
     }

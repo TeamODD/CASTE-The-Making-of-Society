@@ -25,9 +25,10 @@ internal sealed class TestSessionData
     /// <summary>
     /// 테스트용 카드 데이터와 지정한 저장소 및 턴 한도로 세션을 만듭니다.
     /// </summary>
-    public GameSession CreateSession(ISaveStore store, int turnLimit = 12)
+    public GameSession CreateSession(ISaveStore store, int turnLimit = 12,
+        EndingArchiveStore endingArchive = null, EndingDatabase endings = null)
     {
-        return new GameSession(Database, new CardSelector(), store, turnLimit);
+        return new GameSession(Database, new CardSelector(), store, turnLimit, endings, endingArchive);
     }
 
     /// <summary>

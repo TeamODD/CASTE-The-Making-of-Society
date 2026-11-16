@@ -1,3 +1,5 @@
+// 테스트Scene용
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -50,7 +52,13 @@ internal sealed class GameSessionChecks
                 CheckSessionChoice(false, Stat.Default, new Stat(57, 52, 53, 58), "zeal"));
             RunCase("오른쪽 선택 → 효과 / 기록 / 자동 저장", () =>
                 CheckSessionChoice(true, Stat.Default, new Stat(46, 48, 44, 42), "mercy"));
-            RunCase("스탯 한계 도달 → 계층 첫 카드 복귀", CheckGameOver);
+            RunCase("계층별 게임오버 엔딩 50종 / 동시 조건 우선순위", CheckEndingConditions);
+            RunCase("엔딩 조건식의 AND / OR / 괄호 / 우선순위", CheckEndingExpressions);
+            RunCase("현재 카드의 양쪽 엔딩 예측 / 스탯 변경 시 재판정", CheckPreparedEndings);
+            RunCase("게임오버 저장 / 타이틀 이어하기 차단 / 체크포인트 복원", CheckGameOver);
+            RunCase("엔딩 도감의 계층 순서 / CSV 순서 / 해금 상태", CheckEndingCollection);
+            RunCase("찬달라 완주 엔딩 / 치안 경계 / 도감 해금", CheckCompletionEndings);
+            RunCase("엔딩 화면의 새로하기 / 종료한 계층 이어하기", CheckEndingActions);
             RunCase("메인 사건 순서 / 턴 예약 / 0·2·12턴", CheckTurnRules);
             RunCase("랜덤 후보 / 현재 플래그 / 사건 중복 제외", CheckRandomCandidates);
             RunCase("유산 분기 / 저장 후 계층 전환 알림", CheckCasteTransition);
@@ -341,13 +349,111 @@ internal sealed class GameSessionChecks
     }
 
     /// <summary>
-    /// 좌우 선택에서 스탯이 한계에 도달하면 계층 첫 카드와 진입 상태로 돌아오는지 확인합니다.
+    /// 계층별 모든 엔딩과 동시 조건의 판정 순서를 확인합니다.
+    /// </summary>
+    private static void CheckEndingConditions()
+    {
+        var endings = EndingDatabase.LoadDefault();
+        string[] statIds = { "FAITH", "ORDER", "ECONOMY", "PUBLIC" };
+
+        foreach (string caste in new[] { "B", "K", "V", "S", "C" })
+        {
+            for (int first = 0; first < statIds.Length; first++)
+            {
+                var values = new[] { 50, 50, 50, 50 };
+                values[first] = 0;
+                EndingData zero = endings.Evaluate(caste, new Stat(values[0], values[1], values[2], values[3]));
+                Require(zero?.Id == $"{caste}-ZERO-{statIds[first]}" && zero.Text.Contains("\n"),
+                    "계층과 0인 스탯에 맞는 줄바꿈이 포함된 엔딩이 필요합니다.");
+
+                values[first] = 100;
+                Require(endings.Evaluate(caste, new Stat(values[0], values[1], values[2], values[3])) == null,
+                    "한 스탯만 100이면 진행해야 합니다.");
+
+                for (int second = first + 1; second < statIds.Length; second++)
+                {
+                    values[second] = 100;
+                    EndingData pair = endings.Evaluate(caste, new Stat(values[0], values[1], values[2], values[3]));
+                    Require(pair?.Id == $"{caste}-100-{statIds[first]}-{statIds[second]}",
+                        "계층과 100인 두 스탯에 맞는 엔딩이 필요합니다.");
+                    values[second] = 50;
+                }
+            }
+        }
+
+        Require(endings.Evaluate("K", new Stat(100, 100, 0, 0))?.Id == "K-ZERO-ECONOMY",
+            "0 엔딩을 우선 적용하고, 0이 둘이면 스탯 순서로 결정해야 합니다.");
+        Require(endings.Evaluate("K", new Stat(50, 100, 100, 100))?.Id == "K-100-ORDER-ECONOMY",
+            "스탯 셋이 100이면 순서상 첫 두 스탯으로 엔딩을 골라야 합니다.");
+    }
+
+    /// <summary>
+    /// CSV의 복합 조건식과 동일 우선순위에서의 행 순서를 확인합니다.
+    /// </summary>
+    private static void CheckEndingExpressions()
+    {
+        const string header = "ending_id,ending_type,caste_code,caste_name,caste_order,condition,ending_text";
+        var database = new EndingDatabase(string.Join("\n", header,
+            "double,double_100,B,B,1,faith >= 0,double",
+            "first,stat_zero,B,B,1,faith <= 0 || order == 0 || economy >= 80 && public > 50,first",
+            "second,stat_zero,B,B,1,(faith < 1 || order == 0 || economy >= 80) && public != 50,second",
+            "chain,stat_zero,K,K,2,faith > 10 && order < 70 && public >= 30,chain"));
+        Require(database.Evaluate("B", new Stat(0, 50, 50, 50))?.Id == "first",
+            "괄호 없는 OR는 오른쪽의 AND 결과와 결합해야 합니다.");
+        Require(database.Evaluate("B", new Stat(50, 50, 80, 50))?.Id == "double",
+            "괄호 밖 AND는 앞의 괄호식과 함께 평가해야 합니다.");
+        Require(database.Evaluate("B", new Stat(50, 50, 80, 40))?.Id == "second",
+            "괄호 안의 OR를 먼저 평가해야 합니다.");
+        Require(database.Evaluate("B", new Stat(50, 50, 80, 60))?.Id == "first",
+            "동일 우선순위에서 CSV 앞쪽 조건이 선택되어야 합니다.");
+        Require(database.Evaluate("K", new Stat(11, 69, 0, 30))?.Id == "chain"
+            && database.Evaluate("K", new Stat(11, 70, 0, 30)) == null,
+            "세 AND 항이 모두 참일 때만 같은 계층의 엔딩을 반환해야 합니다.");
+        foreach (string invalid in new[] { "faith = 0", "unknown <= 0", "faith < 2 ||", "(faith < 2", "faith < 2 junk" })
+        {
+            ExpectThrows<InvalidDataException>(() => new EndingDatabase(
+                header + "\ninvalid,stat_zero,B,B,1," + invalid + ",invalid"));
+        }
+    }
+
+    /// <summary>
+    /// 현재 카드가 바뀌면 새 좌우 결과를 사용하고, 이후 스탯 변경도 판정에 반영하는지 확인합니다.
+    /// </summary>
+    private void CheckPreparedEndings()
+    {
+        const string header = "ending_id,ending_type,caste_code,caste_name,caste_order,condition,ending_text";
+        var database = new EndingDatabase(string.Join("\n", header,
+            "left,stat_zero,B,B,1,faith >= 57,left",
+            "right,stat_zero,B,B,1,faith <= 46,right"));
+        CardData card = cardDatabase.FindByVariantId("B-M04");
+        foreach (bool right in new[] { false, true })
+        {
+            var store = new MemorySaveStore();
+            store.Save(fixtures.CreateSaveFixture(card, Stat.Default));
+            var session = new GameSession(cardDatabase, new CardSelector(), store, endings: database);
+            Require(session.TryResume(12), "예측에 사용할 현재 카드를 불러와야 합니다.");
+            session.Choose(right);
+            Require(session.State.Ending?.Id == (right ? "right" : "left"), "확정한 방향의 엔딩이 나와야 합니다.");
+        }
+
+        var changedStore = new MemorySaveStore();
+        changedStore.Save(fixtures.CreateSaveFixture(card, Stat.Default));
+        var changedSession = new GameSession(cardDatabase, new CardSelector(), changedStore, endings: database);
+        Require(changedSession.TryResume(12), "스탯 재판정에 사용할 현재 카드를 불러와야 합니다.");
+        changedSession.State.SetStats(new Stat(49, 50, 50, 50));
+        changedSession.Choose(false);
+        Require(changedSession.State.Ending == null && changedSession.State.GetStats().faith == 56,
+            "예측 이후 스탯이 바뀌면 변경된 결과로 판정해야 합니다.");
+    }
+
+    /// <summary>
+    /// 마지막 카드의 엔딩을 저장하고, 타이틀 이어하기 차단과 체크포인트 복원을 확인합니다.
     /// </summary>
     private void CheckGameOver()
     {
         foreach (bool right in new[] { false, true })
         {
-            WithTemporarySave(path =>
+            WithTemporarySave(path => WithTemporarySave(archivePath =>
             {
                 CardData last = cardDatabase.FindByVariantId("B-M04");
                 Stat atRisk = right ? new Stat(1, 1, 1, 1) : new Stat(99, 99, 99, 99);
@@ -355,20 +461,203 @@ internal sealed class GameSessionChecks
                 fixture.progress.seenEventIds.AddRange(new[] { "B-M01", "B-M02", "B-M03" });
                 fixture.progress.turnsUsedInCaste = 3;
                 WriteTemporarySave(fixture, path);
-                GameState state = InitializeGame(path);
+                var archive = new EndingArchiveStore(archivePath);
+                testSession = fixtures.CreateSession(new SaveSystem(path), endingArchive: archive);
+                Require(testSession.TryResume(12) && !File.Exists(archivePath),
+                    "현재 카드의 사전 판정만으로 도감에 엔딩을 기록하면 안 됩니다.");
+                GameState state = testSession.State;
+                testState = state;
+                string expectedId = right ? "B-ZERO-FAITH" : "B-100-FAITH-ORDER";
                 int transitions = 0;
+                int endings = 0;
+                state.CurrentCardChanged += () =>
+                {
+                    if (state.Ending == null)
+                        return;
+
+                    endings++;
+                    Require(ReadTemporarySave(path).progress.endingId == state.Ending.Id,
+                        "엔딩은 디스크에 저장된 뒤 알려야 합니다.");
+                    Require(archive.LoadSeenIds().SetEquals(new[] { state.Ending.Id }),
+                        "확정한 방향의 엔딩만 도감에 기록한 뒤 알려야 합니다.");
+                };
                 testSession.CasteChanged += (_, _) => transitions++;
                 testSession.Choose(right);
 
+                SaveData saved = ReadTemporarySave(path);
+                Require(endings == 1 && state.IsFinished && state.Ending?.Id == expectedId && state.GetCurrentCard() == null,
+                    "선택한 계층의 엔딩을 한 번만 알려야 합니다.");
+                Require(saved.progress.isFinished && saved.progress.endingId == expectedId
+                    && saved.progress.stats.Equals(state.GetStats()) && saved.progress.turnsUsedInCaste == 4,
+                    "엔딩과 선택 결과를 함께 저장해야 합니다.");
+                Require(transitions == 0 && saved.checkpoints.Count == 1,
+                    "계층 마지막 카드의 게임오버는 다음 계층 전환보다 먼저 처리해야 합니다.");
+
+                var store = new SaveSystem(path);
+                var reopened = fixtures.CreateSession(store);
+                string finishedJson = File.ReadAllText(path);
+                Require(!GameSession.HasResumableSave(store) && !reopened.TryResume(12)
+                    && !reopened.StartOrResume(12) && reopened.CasteOrder == 0
+                    && File.ReadAllText(path) == finishedJson,
+                    "타이틀에서 종료된 저장을 열거나 변경하면 안 됩니다.");
+
+                Require(testSession.ResumeFromEnding(), "엔딩 화면에서 체크포인트를 복원할 수 있어야 합니다.");
                 SaveData recovered = ReadTemporarySave(path);
                 ExpectStats(Stat.Default);
-                Require(state.GetCurrentCard()?.variantId == "B-M01", "게임 오버 후 계층의 첫 카드로 돌아가야 합니다.");
+                Require(!state.IsFinished && state.Ending == null && recovered.progress.endingId == null
+                    && state.GetCurrentCard()?.variantId == "B-M01", "재도전 시 엔딩을 지우고 계층의 첫 카드를 복원해야 합니다.");
                 Require(recovered.progress.turnsUsedInCaste == 0 && recovered.progress.flags.Count == 0
-                    && recovered.progress.seenEventIds.Count == 0, "게임 오버를 낸 선택은 세이브에 남으면 안 됩니다.");
-                Require(transitions == 0 && recovered.checkpoints.Count == 1,
-                    "계층 마지막 카드의 게임 오버는 다음 계층 전환보다 먼저 처리해야 합니다.");
+                    && recovered.progress.seenEventIds.Count == 0, "재도전 시 턴과 사건 기록을 복원해야 합니다.");
+                Require(testSession.StartNewGame(12)
+                    && new EndingArchiveStore(archivePath).LoadSeenIds().SetEquals(new[] { expectedId }),
+                    "엔딩 화면에서 복원하거나 새로 시작해도 해금 기록을 유지해야 합니다.");
+            }));
+        }
+    }
+
+    /// <summary>
+    /// 잠긴 칸과 행 순서를 유지하고 여러 번 본 엔딩을 한 번만 기록하는지 확인합니다.
+    /// </summary>
+    private static void CheckEndingCollection()
+    {
+        const string header = "ending_id,ending_type,caste_code,caste_name,caste_order,condition,ending_text";
+        var database = new EndingDatabase(string.Join("\n", header,
+            "K-FIRST,stat_zero,K,K,2,order <= 0,K first",
+            "B-FIRST,double_100,B,B,1,order >= 100 && economy >= 100,B first",
+            "K-SECOND,stat_zero,K,K,2,faith <= 0,K second",
+            "B-SECOND,stat_zero,B,B,1,faith <= 0,B second"));
+
+        WithTemporarySave(path =>
+        {
+            var archive = new EndingArchiveStore(path);
+            var locked = database.GetCollection(archive.LoadSeenIds());
+            Require(locked.Select(group => group.CasteCode).SequenceEqual(new[] { "B", "K" })
+                && locked.SelectMany(group => group.Entries).Count() == 4
+                && locked.SelectMany(group => group.Entries).All(entry => !entry.IsUnlocked
+                    && entry.Id == null && entry.Text == null && entry.Illustration == null)
+                && !File.Exists(path), "저장 없이도 계층 순서에 맞춰 잠긴 칸을 모두 제공해야 합니다.");
+
+            archive.RecordSeen("B-SECOND");
+            archive.RecordSeen("B-SECOND");
+            new EndingArchiveStore(path).RecordSeen("K-FIRST");
+            var reloaded = new EndingArchiveStore(path).LoadSeenIds();
+            Require(reloaded.SetEquals(new[] { "B-SECOND", "K-FIRST" })
+                && JsonConvert.DeserializeObject<Dictionary<string, string[]>>(File.ReadAllText(path))["seenEndingIds"].Length == 2,
+                "새 저장소에서 각 엔딩을 중복 없이 읽을 수 있어야 합니다.");
+
+            var collection = database.GetCollection(reloaded);
+            Require(!collection[0].Entries[0].IsUnlocked && collection[0].Entries[0].Text == null
+                && collection[0].Entries[1].Text == "B second" && collection[0].Entries[1].Illustration == null
+                && collection[1].Entries[0].Text == "K first" && !collection[1].Entries[1].IsUnlocked,
+                "해금 여부나 엔딩 판정 우선순위와 관계없이 CSV 순서로 나타내야 합니다.");
+
+            File.WriteAllText(path, "{\"seenEndingIds\":[42]}");
+            ExpectThrows<InvalidDataException>(() => archive.RecordSeen("B-FIRST"));
+            Require(File.ReadAllText(path) == "{\"seenEndingIds\":[42]}",
+                "잘못된 형식의 도감 파일에 새 데이터를 덮어쓰면 안 됩니다.");
+        });
+    }
+
+    /// <summary>
+    /// 마지막 선택의 치안에 맞춰 완주 엔딩을 결정하고 저장과 도감에 반영하는지 확인합니다.
+    /// </summary>
+    private void CheckCompletionEndings()
+    {
+        var cards = new CardDatabase(string.Join("\n", fixtures.CsvHeader,
+            CreateCsvRow("B-M01", "main", "B", 1), CreateCsvRow("K-M01", "main", "K", 2),
+            CreateCsvRow("V-M01", "main", "V", 3), CreateCsvRow("S-M01", "main", "S", 4),
+            CreateCsvRow("C-M01", "main", "C", 5), CreateCsvRow("C-M02", "main", "C", 5)));
+        cards.FindByVariantId("C-M02").leftChoice.delta = new Stat(0, -1, 0, 0);
+        var endings = EndingDatabase.LoadDefault();
+        var cases = new[]
+        {
+            (order: 10, id: "C-COMPLETE-REVOLT"),
+            (order: 11, id: "C-COMPLETE-ESCAPE"),
+            (order: 40, id: "C-COMPLETE-ESCAPE"),
+            (order: 41, id: "C-COMPLETE-ACCEPT"),
+            (order: 0, id: "C-ZERO-ORDER")
+        };
+
+        foreach (var scenario in cases)
+        {
+            WithTemporarySave(path =>
+            {
+                var store = new MemorySaveStore();
+                var archive = new EndingArchiveStore(path);
+                var session = new GameSession(cards, new CardSelector(), store, endings: endings, endingArchive: archive);
+                session.StartOrResume();
+                session.State.SetStats(new Stat(50, scenario.order + 1, 50, 50));
+                for (int i = 0; i < 5; i++)
+                {
+                    session.Choose(false);
+                    Require(!session.State.IsFinished && session.State.Ending == null && !File.Exists(path),
+                        "찬달라의 마지막 선택 전에는 완주 엔딩이 확정되면 안 됩니다.");
+                }
+
+                Require(session.State.GetCurrentCard()?.variantId == "C-M02", "마지막 카드에 도달해야 합니다.");
+                session.Choose(false);
+                Require(session.State.IsFinished && session.State.Ending?.Id == scenario.id
+                    && session.State.Ending.IsCompletion == (scenario.order > 0)
+                    && session.State.GetStats().order == scenario.order
+                    && store.Saved.progress.endingId == scenario.id && store.Saved.progress.isFinished
+                    && archive.LoadSeenIds().SetEquals(new[] { scenario.id }),
+                    "마지막 선택 후 엔딩을 결정하고 진행과 도감에 기록해야 합니다.");
             });
         }
+    }
+
+    /// <summary>
+    /// 브라만 이후 계층의 엔딩에서 새로하기와 이어하기가 각각 올바른 시작 지점으로 돌아가는지 확인합니다.
+    /// </summary>
+    private void CheckEndingActions()
+    {
+        CardData savedCard = cardDatabase.FindByVariantId("K-M03__MERCY");
+        SaveData progress = fixtures.CreateSaveFixture(savedCard, new Stat(60, 60, 1, 70), turnLimit: 6);
+        var entryStats = new Stat(61, 62, 63, 64);
+        progress.GetLastCheckpoint().stats = entryStats;
+        progress.progress.turnsUsedInCaste = 2;
+        progress.progress.flags.Add("ending_only");
+        progress.progress.seenEventIds.Add("K-M01");
+
+        var store = new MemorySaveStore();
+        store.Save(progress);
+        var session = fixtures.CreateSession(store);
+        Require(GameSession.HasResumableSave(store) && session.TryResume(12),
+            "진행 중인 저장은 타이틀에서 이어할 수 있어야 합니다.");
+        session.Choose(false);
+        Require(session.State.IsFinished && session.State.Ending?.Id == "K-ZERO-ECONOMY",
+            "크샤트리아 엔딩을 표시해야 합니다.");
+        SaveData ending = store.Saved;
+
+        int changes = 0;
+        session.State.CurrentCardChanged += () => changes++;
+        store.FailWrites = true;
+        ExpectThrows<IOException>(() => session.ResumeFromEnding());
+        ExpectThrows<IOException>(() => session.StartNewGame(12));
+        Require(changes == 0 && session.State.IsFinished && ReferenceEquals(store.Saved, ending),
+            "버튼 실행 중 저장에 실패하면 기존 엔딩 화면과 세이브를 유지해야 합니다.");
+
+        store.FailWrites = false;
+        Require(session.ResumeFromEnding() && changes == 1 && !session.State.IsFinished
+            && session.State.GetCurrentCard()?.variantId == "K-M01__MERCY"
+            && session.State.GetStats().Equals(entryStats) && session.State.HasFlag("mercy")
+            && !session.State.HasFlag("ending_only") && session.State.CopySeenEventIds().Count == 0
+            && session.CasteOrder == 2 && session.TurnsUsedInCaste == 0
+            && store.Saved.progress.turnsPerCaste == 6,
+            "이어하기는 종료한 계층의 첫 카드, 진입 스탯, 유산과 턴 설정을 복원해야 합니다.");
+        Require(!session.ResumeFromEnding() && changes == 1, "진행 중에는 엔딩 이어하기가 상태를 바꾸면 안 됩니다.");
+
+        store.Save(progress);
+        var newGameSession = fixtures.CreateSession(store);
+        Require(newGameSession.TryResume(12), "새로하기 검사용 진행을 불러와야 합니다.");
+        newGameSession.Choose(false);
+        Require(newGameSession.State.IsFinished, "새로하기 전 엔딩이 발생해야 합니다.");
+        Require(newGameSession.StartNewGame(12) && !newGameSession.State.IsFinished
+            && newGameSession.State.Ending == null && newGameSession.CasteOrder == 1 && newGameSession.TurnsUsedInCaste == 0
+            && newGameSession.State.GetCurrentCard()?.variantId == "B-M01"
+            && newGameSession.State.GetStats().Equals(Stat.Default) && newGameSession.State.CopyFlags().Count == 0
+            && store.Saved.checkpoints.Count == 1 && store.Saved.progress.endingId == null,
+            "새로하기는 이전 진행을 브라만의 첫 카드와 새 체크포인트로 교체해야 합니다.");
     }
 
     /// <summary>
@@ -415,10 +704,13 @@ internal sealed class GameSessionChecks
             Require(nextMainNumber == 5 && seen.Count == Math.Max(limit, 4),
                 "메인 카드가 모두 나오고 일반 카드는 여유 턴만 써야 합니다.");
             Require(store.Saved.progress.isFinished, "마지막 계층의 종료를 저장해야 합니다.");
-            var resumed = new GameSession(database, new CardSelector(), store, 99);
-            resumed.StartOrResume();
-            Require(resumed.State.GetCurrentCard() == null && resumed.TurnsUsedInCaste == limit,
-                "완료된 게임은 기존 턴 설정과 종료 상태로 이어야 합니다.");
+            var reopened = new GameSession(database, new CardSelector(), store, 99);
+            Require(!GameSession.HasResumableSave(store) && !reopened.TryResume(99) && reopened.CasteOrder == 0,
+                "마지막 계층을 완료한 저장도 타이틀에서 이어할 수 없어야 합니다.");
+            Require(session.State.IsFinished && session.State.Ending == null
+                && session.ResumeFromEnding() && !session.State.IsFinished
+                && session.State.GetCurrentCard()?.variantId == store.Saved.GetLastCheckpoint().firstVariantId,
+                "일반 완료 화면에서도 해당 계층의 체크포인트로 이어할 수 있어야 합니다.");
         }
     }
 
@@ -574,13 +866,18 @@ internal sealed class GameSessionChecks
     {
         WithTemporarySave(path =>
         {
-            WriteTemporarySave(fixtures.CreateSaveFixture(null, Stat.Default), path);
-            GameState state = InitializeGame(path);
+            var database = new CardDatabase(string.Join("\n", fixtures.CsvHeader,
+                CreateCsvRow("B-M01", "main", "B", 1)));
+            var store = new SaveSystem(path);
+            var session = new GameSession(database, new CardSelector(), store);
+            session.StartOrResume();
+            session.Choose(false);
+            GameState state = session.State;
             string original = File.ReadAllText(path);
-            testSession.Choose(false);
-            testSession.Choose(true);
-            ExpectStats(Stat.Default);
-            Require(state.CopyFlags().Count == 0 && state.CopySeenEventIds().Count == 0,
+            session.Choose(false);
+            session.Choose(true);
+            Require(state.IsFinished && state.GetCurrentCard() == null && state.GetStats().Equals(Stat.Default)
+                && state.CopyFlags().Count == 0 && state.CopySeenEventIds().SequenceEqual(new[] { "B-M01" }),
                 "현재 카드가 없으면 상태를 바꾸면 안 됩니다.");
             Require(File.ReadAllText(path) == original, "무효 선택은 저장 파일을 바꾸면 안 됩니다.");
         });
@@ -656,13 +953,15 @@ internal sealed class GameSessionChecks
     {
         WithTemporarySave(path =>
         {
-            const string stats = "{\"faith\":50,\"order\":50,\"economy\":50,\"unrest\":50}";
+            const string stats = "{\"faith\":50,\"order\":50,\"economy\":50,\"unrest\":37}";
             string legacy = "{\"checkpoints\":[{\"casteCode\":\"B\",\"stats\":" + stats
                 + ",\"flags\":null}],\"progress\":{\"stats\":" + stats
                 + ",\"flags\":null,\"seenEventIds\":[\"B-M01\"],\"currentCard\":{\"variantId\":\"B-M02\"}}}";
             File.WriteAllText(path, legacy);
             Require(InitializeGame(path).GetCurrentCard()?.variantId == "B-M02" && testSession.TurnsUsedInCaste == 1,
                 "구형 저장의 카드 객체와 사건 기록을 복구해야 합니다.");
+            Require(testState.GetStats().publicOp == 37,
+                "구형 저장의 민심 값을 그대로 복원해야 합니다.");
             Require(File.ReadAllText(path) == legacy, "기존 계층에서 이어할 때는 선택 전 파일을 유지해야 합니다.");
 
             File.WriteAllText(path, legacy.Replace("{\"variantId\":\"B-M02\"}", "null"));
@@ -792,9 +1091,9 @@ internal sealed class GameSessionChecks
     {
         Stat actual = testState.GetStats();
         Require(actual.faith == expected.faith && actual.order == expected.order
-            && actual.economy == expected.economy && actual.unrest == expected.unrest,
-            $"Expected stats ({expected.faith}, {expected.order}, {expected.economy}, {expected.unrest}), " +
-            $"got ({actual.faith}, {actual.order}, {actual.economy}, {actual.unrest}).");
+            && actual.economy == expected.economy && actual.publicOp == expected.publicOp,
+            $"Expected stats ({expected.faith}, {expected.order}, {expected.economy}, {expected.publicOp}), " +
+            $"got ({actual.faith}, {actual.order}, {actual.economy}, {actual.publicOp}).");
     }
 
     /// <summary>

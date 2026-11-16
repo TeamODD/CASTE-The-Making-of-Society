@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using TMPro;
 using UnityEngine;
 
 public sealed class Test : MonoBehaviour
@@ -13,6 +15,7 @@ public sealed class Test : MonoBehaviour
     private TestDemoSession demoSession;
     private IReadOnlyList<(string name, string error)> results = Array.Empty<(string, string)>();
     private Font dashboardFont;
+    private TMP_FontAsset endingCollectionFont;
     private UnityEngine.UI.Text demoCardTitle;
     private UnityEngine.UI.Text demoCardSpeaker;
     private UnityEngine.UI.Text demoCardDialogue;
@@ -24,6 +27,8 @@ public sealed class Test : MonoBehaviour
     private UnityEngine.UI.Button rightButton;
     private UnityEngine.UI.Button restoreButton;
     private UnityEngine.UI.Button assignDemoCardButton;
+    private UnityEngine.UI.Button endingNewGameButton;
+    private UnityEngine.UI.Button endingResumeButton;
     private UnityEngine.UI.Text reportSummary;
     private UnityEngine.UI.Text reportDetails;
     private UnityEngine.UI.Text saveBeforeText;
@@ -83,6 +88,8 @@ public sealed class Test : MonoBehaviour
             demoSession.CurrentCardChanged -= OnDemoCardChanged;
             demoSession.Dispose();
         }
+        if (endingCollectionFont != null)
+            Destroy(endingCollectionFont);
         if (dashboardFont != null)
             Destroy(dashboardFont);
     }
@@ -115,7 +122,8 @@ public sealed class Test : MonoBehaviour
         Label(background, "CASTE / 기능 테스트", 30, 0.04f, 0.90f, 0.49f, 0.98f);
         MakeButton(background, "자동 검사 다시 실행", 0.52f, 0.91f, 0.74f, 0.97f, () => RunAndDisplayChecks());
 
-        RectTransform content = MakeRect(background, "Test Content", 0, 0, 1, 1);
+        RectTransform mainView = MakeRect(background, "Test View", 0, 0, 1, 1);
+        RectTransform content = MakeRect(mainView, "Test Content", 0, 0, 1, 1);
         var report = Panel(content, "자동 검증", 0.04f, 0.05f, 0.38f, 0.875f);
         reportSummary = Label(report, string.Empty, 23, 0.05f, 0.89f, 0.95f, 0.98f);
         Label(report, "검사 결과 · 아래로 스크롤", 15, 0.05f, 0.80f, 0.95f, 0.89f)
@@ -132,7 +140,7 @@ public sealed class Test : MonoBehaviour
         demoCardDialogue = Label(demo, string.Empty, 17, 0.04f, 0.65f, 0.96f, 0.81f);
         demoCardChoices = Label(demo, string.Empty, 15, 0.04f, 0.56f, 0.96f, 0.65f);
 
-        string[] names = { "신앙", "치안", "경제", "불만" };
+        string[] names = { "신앙", "치안", "경제", "민심" };
         for (int i = 0; i < names.Length; i++)
         {
             float left = 0.04f + i * 0.235f;
@@ -151,6 +159,12 @@ public sealed class Test : MonoBehaviour
             () => RunDemoAction(session => session.Restore(), "체크포인트 복원 → 첫 카드 및 저장 복구"));
         assignDemoCardButton = MakeButton(demo, "테스트 카드만 지정", 0.67f, 0.025f, 0.96f, 0.095f,
             () => RunDemoAction(session => session.AssignDemoCard(), "수동 테스트용 카드 지정 / 스탯·플래그·기록 유지"));
+        endingNewGameButton = MakeButton(demo, "새로하기", 0.04f, 0.115f, 0.48f, 0.185f,
+            () => RunDemoAction(session => session.StartNewGame(), "브라만부터 새 게임 시작"));
+        endingResumeButton = MakeButton(demo, "이어하기", 0.52f, 0.115f, 0.96f, 0.185f,
+            () => RunDemoAction(session => session.ResumeFromEnding(), "엔딩이 발생한 계층의 체크포인트에서 다시 시작"));
+        endingNewGameButton.gameObject.SetActive(false);
+        endingResumeButton.gameObject.SetActive(false);
 
         if (data != null)
         {
@@ -158,14 +172,15 @@ public sealed class Test : MonoBehaviour
             demoSession.CurrentCardChanged += OnDemoCardChanged;
         }
 
-        AddStartMenu(content, demo);
-        AddSaveInspector(background, content);
+        Action openCollection = AddEndingCollection(mainView, content);
+        AddStartMenu(content, demo, openCollection);
+        AddSaveInspector(background, mainView);
     }
 
     /// <summary>
     /// 테스트 새로하기와 이어하기 버튼을 만들고 수동 화면과 시작 메뉴를 전환합니다.
     /// </summary>
-    private void AddStartMenu(RectTransform content, RectTransform demo)
+    private void AddStartMenu(RectTransform content, RectTransform demo, Action openCollection)
     {
         var menu = Panel(content, "시작 메뉴", 0.40f, 0.05f, 0.96f, 0.875f);
         Label(menu, "테스트 시작", 32, 0.10f, 0.71f, 0.90f, 0.83f).alignment = TextAnchor.MiddleCenter;
@@ -186,6 +201,7 @@ public sealed class Test : MonoBehaviour
             () => OpenDemo(session => session.StartNewGame(), "새 테스트 진행과 첫 체크포인트 저장 완료"), menuStatus);
         var resume = MakeButton(menu, "이어하기", 0.22f, 0.40f, 0.78f, 0.50f,
             () => OpenDemo(session => session.ResumeGame(), "테스트 저장 파일에서 이어하기 완료"), menuStatus);
+        AddCollectionButton(menu, "엔딩 도감", 0.22f, 0.09f, 0.78f, 0.19f, () => openCollection());
         var savedCardTitle = Label(menu, string.Empty, 18, 0.10f, 0.35f, 0.90f, 0.395f);
         savedCardTitle.gameObject.name = "Saved Card Title";
         savedCardTitle.alignment = TextAnchor.MiddleCenter;
@@ -196,19 +212,20 @@ public sealed class Test : MonoBehaviour
         void ShowStartMenu()
         {
             newGame.interactable = demoSession != null;
-            resume.interactable = demoSession?.HasSave == true;
+            resume.interactable = demoSession?.CanResume == true;
             savedCardTitle.text = resume.interactable ? demoSession.GetSavedCardTitle() ?? string.Empty : string.Empty;
             menuStatus.color = new Color32(232, 239, 248, 255);
             menuStatus.text = demoSession == null
                 ? "CSV 연결과 테스트 카드 ID를 확인해 주세요."
                 : resume.interactable
                     ? "새로하기를 누르면 기존 테스트 세이브를 덮어씁니다."
-                    : "이어할 테스트 세이브가 없습니다.";
+                    : "이어할 진행 중인 테스트 세이브가 없습니다.";
             demo.gameObject.SetActive(false);
             menu.gameObject.SetActive(true);
         }
 
         MakeButton(demo, "시작 메뉴", 0.04f, 0.025f, 0.33f, 0.095f, ShowStartMenu);
+        AddCollectionButton(demo, "엔딩 도감", 0.355f, 0.025f, 0.645f, 0.095f, () => openCollection());
         ShowStartMenu();
     }
 
@@ -271,7 +288,21 @@ public sealed class Test : MonoBehaviour
         var pane = Panel(parent, heading, left, 0.04f, right, 0.75f);
         Label(pane, heading, 19, 0.025f, 0.90f, 0.96f, 1);
 
-        var scroll = MakeRect(pane, "JSON Scroll", 0, 0, 1, 0.89f)
+        var scroll = MakeVerticalScroll(pane, "JSON Scroll", 0, 0, 1, 0.89f);
+        var text = Label(scroll.content, string.Empty, 16, 0, 0, 1, 1);
+        text.alignment = TextAnchor.UpperLeft;
+        text.resizeTextForBestFit = false;
+        text.supportRichText = false;
+        return (scroll, text);
+    }
+
+    /// <summary>
+    /// 저장 파일과 엔딩 도감에서 공통으로 쓰는 세로 스크롤 영역을 만듭니다.
+    /// </summary>
+    private static UnityEngine.UI.ScrollRect MakeVerticalScroll(
+        Transform parent, string name, float left, float bottom, float right, float top)
+    {
+        var scroll = MakeRect(parent, name, left, bottom, right, top)
             .gameObject.AddComponent<UnityEngine.UI.ScrollRect>();
         var viewport = Panel(scroll.transform, "Viewport", 0, 0, 1, 1);
         var viewportImage = viewport.GetComponent<UnityEngine.UI.Image>();
@@ -289,17 +320,128 @@ public sealed class Test : MonoBehaviour
         var fitter = content.gameObject.AddComponent<UnityEngine.UI.ContentSizeFitter>();
         fitter.verticalFit = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
 
-        var text = Label(content, string.Empty, 16, 0, 0, 1, 1);
-        text.alignment = TextAnchor.UpperLeft;
-        text.resizeTextForBestFit = false;
-        text.supportRichText = false;
-
         scroll.viewport = viewport;
         scroll.content = content;
         scroll.horizontal = false;
         scroll.movementType = UnityEngine.UI.ScrollRect.MovementType.Clamped;
         scroll.scrollSensitivity = 24;
-        return (scroll, text);
+        return scroll;
+    }
+
+    /// <summary>
+    /// 테스트 도감 화면과 열기 동작을 준비합니다.
+    /// </summary>
+    private Action AddEndingCollection(RectTransform parent, RectTransform testContent)
+    {
+        endingCollectionFont = TMP_FontAsset.CreateFontAsset("Malgun Gothic", "Regular");
+        var panel = Panel(parent, "Ending Collection", 0.04f, 0.05f, 0.96f, 0.875f);
+        AddCollectionLabel(panel, "엔딩 도감", 24, 0.025f, 0.88f, 0.74f, 0.98f);
+        AddCollectionButton(panel, "닫기", 0.82f, 0.88f, 0.975f, 0.98f, () =>
+        {
+            panel.gameObject.SetActive(false);
+            testContent.gameObject.SetActive(true);
+        });
+
+        var list = MakeVerticalScroll(panel, "Ending List", 0.025f, 0.045f, 0.38f, 0.86f);
+        list.content.GetComponent<UnityEngine.UI.VerticalLayoutGroup>().spacing = 6;
+        var title = AddCollectionLabel(panel, string.Empty, 21, 0.41f, 0.77f, 0.975f, 0.86f);
+        var image = MakeRect(panel, "Ending Illustration", 0.41f, 0.42f, 0.975f, 0.76f)
+            .gameObject.AddComponent<UnityEngine.UI.Image>();
+        image.preserveAspect = true;
+        image.raycastTarget = false;
+
+        var detail = MakeVerticalScroll(panel, "Ending Text", 0.41f, 0.045f, 0.975f, 0.76f);
+        var body = AddCollectionLabel(detail.content, string.Empty, 18, 0, 0, 1, 1);
+        body.alignment = TextAlignmentOptions.TopLeft;
+        panel.gameObject.SetActive(false);
+
+        /* <summary>선택한 엔딩의 본문을 표시하고 이미지 유무에 맞춰 본문 영역을 조정합니다.</summary> */
+        void ShowEntry(EndingCollectionEntry entry)
+        {
+            title.text = entry?.Id ?? string.Empty;
+            body.text = entry?.Text ?? string.Empty;
+            image.sprite = entry?.Illustration;
+            bool hasImage = image.sprite != null;
+            image.gameObject.SetActive(hasImage);
+            detail.GetComponent<RectTransform>().anchorMax = new Vector2(0.975f, hasImage ? 0.40f : 0.76f);
+            Canvas.ForceUpdateCanvases();
+            detail.verticalNormalizedPosition = 1;
+        }
+
+        return () =>
+        {
+            testContent.gameObject.SetActive(false);
+            panel.gameObject.SetActive(true);
+            foreach (Transform child in list.content)
+            {
+                child.gameObject.SetActive(false);
+                Destroy(child.gameObject);
+            }
+            ShowEntry(null);
+
+            try
+            {
+                if (demoSession == null)
+                {
+                    title.text = "테스트 세션을 사용할 수 없습니다.";
+                    return;
+                }
+
+                foreach (EndingCollectionGroup group in demoSession.GetEndingCollection())
+                {
+                    var heading = AddCollectionLabel(list.content, group.CasteName, 20, 0, 0, 1, 1);
+                    heading.color = new Color32(173, 201, 229, 255);
+                    heading.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 34;
+                    foreach (EndingCollectionEntry entry in group.Entries)
+                    {
+                        string label = entry.IsUnlocked ? entry.Id : "???";
+                        var button = AddCollectionButton(list.content, label, 0, 0, 1, 1, () => ShowEntry(entry));
+                        button.gameObject.AddComponent<UnityEngine.UI.LayoutElement>().preferredHeight = 36;
+                        button.interactable = entry.IsUnlocked;
+                    }
+                }
+                Canvas.ForceUpdateCanvases();
+                list.verticalNormalizedPosition = 1;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
+            {
+                title.text = "테스트 도감을 읽을 수 없습니다.";
+                body.text = exception.Message;
+                Debug.LogError($"[Integration Test] Ending collection could not be opened: {exception}", this);
+            }
+        };
+    }
+
+    /// <summary>
+    /// 도감과 테스트 메뉴에서 사용할 텍스트 버튼을 만듭니다.
+    /// </summary>
+    private UnityEngine.UI.Button AddCollectionButton(Transform parent, string caption, float left, float bottom,
+        float right, float top, UnityEngine.Events.UnityAction click)
+    {
+        var rect = MakeRect(parent, caption, left, bottom, right, top);
+        var image = rect.gameObject.AddComponent<UnityEngine.UI.Image>();
+        image.color = new Color32(44, 89, 120, 255);
+        var button = rect.gameObject.AddComponent<UnityEngine.UI.Button>();
+        button.targetGraphic = image;
+        button.onClick.AddListener(click);
+        AddCollectionLabel(rect, caption, 17, 0.04f, 0, 0.96f, 1).alignment = TextAlignmentOptions.Center;
+        return button;
+    }
+
+    /// <summary>
+    /// 도감의 제목과 본문을 표시할 텍스트를 만듭니다.
+    /// </summary>
+    private TMP_Text AddCollectionLabel(Transform parent, string text, int size, float left, float bottom, float right, float top)
+    {
+        var label = MakeRect(parent, "Text", left, bottom, right, top).gameObject.AddComponent<TextMeshProUGUI>();
+        if (endingCollectionFont != null)
+            label.font = endingCollectionFont;
+        label.fontSize = size;
+        label.color = new Color32(232, 239, 248, 255);
+        label.raycastTarget = false;
+        label.richText = false;
+        label.text = text;
+        return label;
     }
 
     /// <summary>
@@ -321,22 +463,33 @@ public sealed class Test : MonoBehaviour
     private void OnDemoCardChanged()
     {
         cardChangedCount++;
-        RefreshDemoCard(demoSession.State.GetCurrentCard());
+        RefreshDemoCard(demoSession.State);
     }
 
     /// <summary>
-    /// 카드의 제목, 화자, 대사, 선택지를 표시하고 선택 버튼의 활성 상태를 갱신합니다.
+    /// 현재 카드 또는 엔딩을 표시하고 진행 중과 엔딩 화면의 버튼을 전환합니다.
     /// </summary>
-    private void RefreshDemoCard(CardData card)
+    private void RefreshDemoCard(GameState state)
     {
-        demoCardTitle.text = card == null ? "현재 카드 없음" : $"현재 카드  {card.variantId} / {card.title}";
-        demoCardSpeaker.text = card == null ? string.Empty : $"화자  {card.speaker}";
-        demoCardDialogue.text = card?.dialogue ?? string.Empty;
+        CardData card = state.GetCurrentCard();
+        EndingData ending = state.Ending;
+        bool finished = state.IsFinished;
+        demoCardTitle.text = ending != null ? $"{(ending.IsCompletion ? "완주 엔딩" : "게임오버")}  {ending.Id}"
+            : finished ? "게임 완료"
+            : card != null ? $"현재 카드  {card.variantId} / {card.title}" : "현재 카드 없음";
+        demoCardSpeaker.text = ending?.CasteName ?? (card == null ? string.Empty : $"화자  {card.speaker}");
+        demoCardDialogue.text = ending?.Text ?? card?.dialogue ?? string.Empty;
         demoCardChoices.text = card == null
             ? string.Empty
             : $"왼쪽  {card.leftChoice?.text}\n오른쪽  {card.rightChoice?.text}";
         leftButton.interactable = card?.leftChoice != null;
         rightButton.interactable = card?.rightChoice != null;
+        leftButton.gameObject.SetActive(!finished);
+        rightButton.gameObject.SetActive(!finished);
+        restoreButton.gameObject.SetActive(!finished);
+        assignDemoCardButton.gameObject.SetActive(!finished);
+        endingNewGameButton.gameObject.SetActive(finished);
+        endingResumeButton.gameObject.SetActive(finished);
     }
 
     /// <summary>
@@ -349,7 +502,7 @@ public sealed class Test : MonoBehaviour
         ShowStat(0, before.faith, after.faith);
         ShowStat(1, before.order, after.order);
         ShowStat(2, before.economy, after.economy);
-        ShowStat(3, before.unrest, after.unrest);
+        ShowStat(3, before.publicOp, after.publicOp);
 
         string flags = string.Join(", ", state.CopyFlags());
         string seen = string.Join(", ", state.CopySeenEventIds());
