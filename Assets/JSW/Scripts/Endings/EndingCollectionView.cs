@@ -16,6 +16,7 @@ namespace Caste.Endings
     public class EndingCollectionView : MonoBehaviour
     {
         [Header("데이터")]
+        [Tooltip("기본 엔딩 목록. 백엔드 연결(BackendEndingCollectionBinder)을 쓰면 실행 중에 백엔드 목록으로 바뀐다")]
         [SerializeField] private EndingCatalog _catalog;
 
         [Header("구성 요소")]
@@ -42,10 +43,11 @@ namespace Caste.Endings
         [SerializeField] private bool _resetPageOnOpen = true;
 
         private IEndingUnlockStore _store = new PlayerPrefsEndingUnlockStore();
+        private IEndingList _list;
         private int _page;
 
         private int PerPage => Mathf.Max(1, _slots?.Length ?? 0);
-        private int PageCount => Mathf.Max(1, Mathf.CeilToInt((_catalog != null ? _catalog.Count : 0) / (float)PerPage));
+        private int PageCount => Mathf.Max(1, Mathf.CeilToInt((_list != null ? _list.Count : 0) / (float)PerPage));
 
         /// <summary>저장 방식을 바꾸고 싶을 때 (예: 팀원 백엔드 저장소).</summary>
         public void SetUnlockStore(IEndingUnlockStore store)
@@ -54,11 +56,21 @@ namespace Caste.Endings
             Refresh();
         }
 
+        /// <summary>엔딩 목록과 해금 기록을 함께 바꾼다. (예: 백엔드 도감 데이터)</summary>
+        public void SetSource(IEndingList list, IEndingUnlockStore store)
+        {
+            _list = list ?? _catalog;
+            _store = store ?? new PlayerPrefsEndingUnlockStore();
+            _page = Mathf.Clamp(_page, 0, PageCount - 1);
+            Refresh();
+        }
+
         private void Awake()
         {
-            if (_popup == null || _catalog == null)
+            if (_list == null) _list = _catalog;
+            if (_popup == null)
             {
-                Debug.LogError($"[EndingCollection] {name}: PopupView 또는 EndingCatalog가 연결되지 않았습니다.", this);
+                Debug.LogError($"[EndingCollection] {name}: PopupView가 연결되지 않았습니다.", this);
                 enabled = false;
                 return;
             }
@@ -95,9 +107,9 @@ namespace Caste.Endings
 
         public void Refresh()
         {
-            if (_catalog == null || _slots == null) return;
+            if (_list == null || _slots == null) return;
 
-            int total = _catalog.Count;
+            int total = _list.Count;
             int start = _page * PerPage;
 
             for (int i = 0; i < _slots.Length; i++)
@@ -108,8 +120,8 @@ namespace Caste.Endings
                 int index = start + i;
                 if (index >= total) { slot.Hide(); continue; }
 
-                bool unlocked = _store.IsUnlocked(_catalog.GetId(index));
-                if (unlocked && _catalog.TryGet(index, out var entry)) slot.ShowUnlocked(index + 1, entry);
+                bool unlocked = _store.IsUnlocked(_list.GetId(index));
+                if (unlocked && _list.TryGet(index, out var entry)) slot.ShowUnlocked(index + 1, entry);
                 else if (unlocked) slot.ShowUnlocked(index + 1, null);
                 else slot.ShowLocked(index + 1);
             }
@@ -119,7 +131,7 @@ namespace Caste.Endings
             if (_progressText != null)
             {
                 int got = 0;
-                for (int i = 0; i < total; i++) if (_store.IsUnlocked(_catalog.GetId(i))) got++;
+                for (int i = 0; i < total; i++) if (_store.IsUnlocked(_list.GetId(i))) got++;
                 _progressText.text = string.Format(_progressFormat, got, total);
             }
 

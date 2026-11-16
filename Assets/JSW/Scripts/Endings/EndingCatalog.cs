@@ -9,7 +9,7 @@ namespace Caste.Endings
     /// 만드는 법: Project 창 우클릭 > Create > Caste > Ending Catalog
     /// </summary>
     [CreateAssetMenu(menuName = "Caste/Ending Catalog", fileName = "EndingCatalog")]
-    public class EndingCatalog : ScriptableObject
+    public class EndingCatalog : ScriptableObject, IEndingList
     {
         [Tooltip("엔딩 데이터가 비어 있을 때 도감에 보여줄 칸 수")]
         [SerializeField, Min(0)] private int _placeholderCount = 50;

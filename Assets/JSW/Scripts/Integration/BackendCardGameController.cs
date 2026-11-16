@@ -38,6 +38,10 @@ namespace Caste.Integration
         public UnityEvent<int, int> onCasteChanged;
         [Tooltip("마지막 계층까지 끝나서 더 낼 카드가 없을 때")]
         public UnityEvent onGameFinished;
+        [Tooltip("엔딩이 나왔을 때 엔딩 문장을 넘긴다 → EndingScreenController.ShowText에 연결")]
+        public UnityEvent<string> onEndingReached;
+        [Tooltip("완주 엔딩을 다 본 뒤 (타이틀로 이동 등)")]
+        public UnityEvent onCompletionFinished;
 
         public StatModel Stats { get; private set; }
 
@@ -84,7 +88,8 @@ namespace Caste.Integration
         public void OpenGame()
         {
             if (_resumeIfPossible && _gameManager.CanResume) ResumeGame();
-            else StartNewGame();
+            // 저장은 있지만 불러오지 못한 경우(예: CSV가 바뀌어 저장된 카드가 사라짐) → 새 게임으로
+            if (_gameManager.State == null) StartNewGame();
         }
 
         public void StartNewGame() => Run(_gameManager.StartNewGame);
@@ -135,11 +140,30 @@ namespace Caste.Integration
             _cardView.Show(card);
             _statPanel.SetCard(card);
 
-            if (card == null)
+            _swipe.enabled = card != null;
+            if (card != null) return;
+
+            // 더 낼 카드가 없음 = 게임 종료. 백엔드가 고른 엔딩 문장을 엔딩 화면으로 넘긴다.
+            var ending = state.Ending;
+            if (ending != null) onEndingReached?.Invoke(ending.Text);
+            onGameFinished?.Invoke();
+        }
+
+        /// <summary>
+        /// 엔딩 화면을 다 본 뒤 호출 (EndingScreenController.onEndingFinished에 연결).
+        /// 게임 오버 엔딩 → 이번 계층 체크포인트에서 다시 시작 / 완주 엔딩 → onCompletionFinished
+        /// </summary>
+        public void ContinueAfterEnding()
+        {
+            var state = _gameManager.State;
+            if (state == null || !state.IsFinished) return;
+
+            if (state.Ending != null && state.Ending.IsCompletion)
             {
-                _swipe.enabled = false;
-                onGameFinished?.Invoke();
+                onCompletionFinished?.Invoke();
+                return;
             }
+            Run(() => _gameManager.ResumeFromEnding());
         }
 
         // 백엔드는 저장 실패를 예외로 알려준다. 진행 상태는 유지되므로 같은 선택을 다시 시도할 수 있다.

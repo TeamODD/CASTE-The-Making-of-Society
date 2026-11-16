@@ -4035,6 +4035,52 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!1 &627675800
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 627675802}
+  - component: {fileID: 627675801}
+  m_Layer: 0
+  m_Name: GameManager (JMS)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &627675801
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 627675800}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 71c62d1d7a2349846a00ee7cb4e4683d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameManager
+  csvFile: {fileID: 4900000, guid: 8d0ddd16c13098d459fd5709922c9b64, type: 3}
+  TurnsPerCaste: 12
+--- !u!4 &627675802
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 627675800}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &632467445
 GameObject:
   m_ObjectHideFlags: 0
@@ -7152,6 +7198,7 @@ GameObject:
   - component: {fileID: 1334619813}
   - component: {fileID: 1334619812}
   - component: {fileID: 1334619811}
+  - component: {fileID: 1334619815}
   m_Layer: 0
   m_Name: EndingCollection
   m_TagString: Untagged
@@ -7276,6 +7323,23 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!114 &1334619815
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1334619809}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: df99526b26f87d04484783fd49152392, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Caste.Integration.BackendEndingCollectionBinder
+  _gameManager: {fileID: 627675801}
+  _view: {fileID: 1334619812}
+  _popup: {fileID: 1334619813}
+  _showCasteName: 1
+  _titleLength: 14
 --- !u!1 &1354507464
 GameObject:
   m_ObjectHideFlags: 0
@@ -11582,3 +11646,4 @@ SceneRoots:
   - {fileID: 1306913285}
   - {fileID: 592760010}
   - {fileID: 1026707045}
+  - {fileID: 627675802}

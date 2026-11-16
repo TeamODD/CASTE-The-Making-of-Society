@@ -34,6 +34,9 @@ namespace Caste.Ending
             "- END -"
         };
 
+        [Tooltip("ShowText로 받은 문장을 줄마다 한 페이지로 나눈다. 끄면 전체를 한 페이지로")]
+        [SerializeField] private bool _splitLinesIntoPages = true;
+
         [Header("진행 방식")]
         [Tooltip("화면을 터치/클릭하면: 출력 중이면 스킵, 다 나왔으면 다음 페이지")]
         [SerializeField] private bool _advanceOnTap = true;
@@ -81,6 +84,20 @@ namespace Caste.Ending
             _popup.Open();
             _typewriter.Play(_current[0]);
             onEndingStarted?.Invoke();
+        }
+
+        /// <summary>
+        /// 문장 하나를 받아 시작 (UnityEvent&lt;string&gt;에 바로 연결 가능 → 백엔드 엔딩 문장 연결용).
+        /// </summary>
+        public void ShowText(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return;
+            if (!_splitLinesIntoPages) { Show(new[] { text.Trim() }); return; }
+
+            var pages = new System.Collections.Generic.List<string>();
+            foreach (string line in text.Replace("\r\n", "\n").Split('\n'))
+                if (!string.IsNullOrWhiteSpace(line)) pages.Add(line.Trim());
+            Show(pages.ToArray());
         }
 
         public void Hide()

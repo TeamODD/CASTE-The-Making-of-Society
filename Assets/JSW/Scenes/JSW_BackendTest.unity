@@ -5761,6 +5761,7 @@ MonoBehaviour:
   - "\uADF8\uB807\uAC8C \uD55C \uC2DC\uB300\uAC00 \uC800\uBB3C\uC5C8\uB2E4."
   - "\uC0AC\uB78C\uB4E4\uC740 \uADF8 \uC2DC\uC808\uC744 \uAE30\uC5B5\uD560\uAE4C."
   - '- END -'
+  _splitLinesIntoPages: 1
   _advanceOnTap: 1
   _advanceOnKeyboard: 1
   _autoAdvanceDelay: 0
@@ -8921,6 +8922,24 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   onGameFinished:
+    m_PersistentCalls:
+      m_Calls: []
+  onEndingReached:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1409447899}
+        m_TargetAssemblyTypeName: Caste.Ending.EndingScreenController, Assembly-CSharp
+        m_MethodName: ShowText
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  onCompletionFinished:
     m_PersistentCalls:
       m_Calls: []
 --- !u!1660057539 &9223372036854775807
