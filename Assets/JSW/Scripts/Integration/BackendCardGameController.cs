@@ -1,4 +1,4 @@
-namespace Caste.Integration
+﻿namespace Caste.Integration
 {
     // using을 namespace 안에 둔다: 전역 CardData(JMS)보다 Caste.Cards.CardData를 먼저 찾게 하기 위함.
     using System;
@@ -7,6 +7,7 @@ namespace Caste.Integration
     using Caste.Stats;
     using UnityEngine;
     using UnityEngine.Events;
+    using UnityEngine.Serialization;
     using BackendManager = global::GameManager;
     using BackendState = global::GameState;
 
@@ -40,8 +41,11 @@ namespace Caste.Integration
         public UnityEvent onGameFinished;
         [Tooltip("엔딩이 나왔을 때 엔딩 문장을 넘긴다 → EndingScreenController.ShowText에 연결")]
         public UnityEvent<string> onEndingReached;
-        [Tooltip("완주 엔딩을 다 본 뒤 (타이틀로 이동 등)")]
-        public UnityEvent onCompletionFinished;
+        [Tooltip("엔딩이 나왔을 때 엔딩 문장 + 일러스트를 넘긴다 → EndingScreenController.ShowEnding에 연결 (일러스트 없으면 null)")]
+        public UnityEvent<string, Sprite> onEndingWithArtReached;
+        [Tooltip("엔딩을 다 본 뒤 (게임오버·완주 상관없이) → 타이틀 씬 로드 등에 연결")]
+        [FormerlySerializedAs("onCompletionFinished")]
+        public UnityEvent onReturnToTitle;
 
         public StatModel Stats { get; private set; }
 
@@ -145,25 +149,23 @@ namespace Caste.Integration
 
             // 더 낼 카드가 없음 = 게임 종료. 백엔드가 고른 엔딩 문장을 엔딩 화면으로 넘긴다.
             var ending = state.Ending;
-            if (ending != null) onEndingReached?.Invoke(ending.Text);
+            if (ending != null)
+            {
+                onEndingWithArtReached?.Invoke(ending.Text, global::EndingArt.Load(ending.Id));
+                onEndingReached?.Invoke(ending.Text);
+            }
             onGameFinished?.Invoke();
         }
 
         /// <summary>
-        /// 엔딩 화면을 다 본 뒤 호출 (EndingScreenController.onEndingFinished에 연결).
-        /// 게임 오버 엔딩 → 이번 계층 체크포인트에서 다시 시작 / 완주 엔딩 → onCompletionFinished
+        /// 엔딩 화면을 다 본 뒤 호출 (EndingScreenController.onEndingFinished에 연결 가능).
+        /// 게임오버·완주 상관없이 무조건 타이틀로 보낸다. (체크포인트 복귀 안 함 — 2026-11-17 결정)
         /// </summary>
         public void ContinueAfterEnding()
         {
             var state = _gameManager.State;
             if (state == null || !state.IsFinished) return;
-
-            if (state.Ending != null && state.Ending.IsCompletion)
-            {
-                onCompletionFinished?.Invoke();
-                return;
-            }
-            Run(() => _gameManager.ResumeFromEnding());
+            onReturnToTitle?.Invoke();
         }
 
         // 백엔드는 저장 실패를 예외로 알려준다. 진행 상태는 유지되므로 같은 선택을 다시 시도할 수 있다.

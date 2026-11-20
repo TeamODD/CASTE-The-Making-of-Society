@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 
 namespace Caste.Endings
@@ -18,5 +18,7 @@ namespace Caste.Endings
         public string description;
         [Tooltip("엔딩 일러스트 (선택)")]
         public Sprite illustration;
+        [Tooltip("(선택) 이 엔딩이 속한 계층의 상징물. 도감 칸에 표시")]
+        public Sprite casteEmblem;
     }
 }

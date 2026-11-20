@@ -1,4 +1,4 @@
-namespace Caste.Integration
+﻿namespace Caste.Integration
 {
     // using을 namespace 안에 둔다: 전역 타입(JMS)과 이름이 겹쳐도 Caste 쪽을 먼저 찾게 하기 위함.
     using System.Collections.Generic;
@@ -14,18 +14,22 @@ namespace Caste.Integration
         private readonly List<EndingEntry> _entries = new();
         private readonly HashSet<string> _unlocked = new();
 
-        public BackendEndingList(IReadOnlyList<BackendGroup> groups, bool showCasteName, int titleLength)
+        /// <param name="titleFormat">칸 제목 형식. {0} = 계층 이름, {1} = 계층 안 번호(1부터)</param>
+        public BackendEndingList(IReadOnlyList<BackendGroup> groups, string titleFormat,
+            ICasteEmblemProvider emblems = null)
         {
+            if (string.IsNullOrEmpty(titleFormat)) titleFormat = "[ {0} ] 엔딩{1}";
             if (groups == null) return;
 
             foreach (var group in groups)
             {
                 if (group?.Entries == null) continue;
+                int numberInCaste = 0;
                 foreach (var e in group.Entries)
                 {
                     if (e == null) continue;
-                    string title = MakeTitle(e.Text, titleLength);
-                    if (showCasteName && !string.IsNullOrEmpty(group.CasteName)) title = $"[{group.CasteName}] {title}";
+                    numberInCaste++;
+                    string title = string.Format(titleFormat, group.CasteName, numberInCaste);
 
                     _entries.Add(new EndingEntry
                     {
@@ -33,6 +37,7 @@ namespace Caste.Integration
                         title = title,
                         description = e.Text,
                         illustration = e.Illustration,
+                        casteEmblem = emblems?.GetEmblem(group.CasteCode),
                     });
                     if (e.IsUnlocked) _unlocked.Add(e.Id);
                 }
@@ -54,12 +59,5 @@ namespace Caste.Integration
 
         public void Unlock(string endingId) { } // 백엔드가 기록함
 
-        // 엔딩 문장 첫 줄을 칸 제목으로 사용 (길면 자르고 … 붙임)
-        private static string MakeTitle(string text, int maxLength)
-        {
-            if (string.IsNullOrWhiteSpace(text)) return "";
-            string first = text.Replace("\r", "").Split('\n')[0].Trim();
-            return first.Length <= maxLength ? first : first.Substring(0, maxLength) + "…";
-        }
     }
 }

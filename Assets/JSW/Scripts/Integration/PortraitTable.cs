@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 
 namespace Caste.Integration
@@ -24,9 +24,11 @@ namespace Caste.Integration
 
         public Sprite GetPortrait(string speaker)
         {
+            if (string.IsNullOrWhiteSpace(speaker)) return _fallback;
+            string key = speaker.Trim();
             foreach (var e in _entries)
-                if (e.speaker == speaker) return e.portrait;
-            return _fallback;
+                if (e.portrait != null && e.speaker != null && e.speaker.Trim() == key) return e.portrait;
+            return _fallback; // 표에 없거나 그림이 비어 있으면 기본 초상화
         }
     }
 }

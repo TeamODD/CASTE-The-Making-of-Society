@@ -1,4 +1,4 @@
-namespace Caste.Integration
+﻿namespace Caste.Integration
 {
     // using을 namespace 안에 둔다: 전역 타입(JMS)과 이름이 겹쳐도 Caste 쪽을 먼저 찾게 하기 위함.
     using System;
@@ -20,12 +20,12 @@ namespace Caste.Integration
         [SerializeField] private EndingCollectionView _view;
         [Tooltip("이 팝업이 열릴 때마다 백엔드 목록을 다시 받아온다")]
         [SerializeField] private PopupView _popup;
+        [Tooltip("(선택) 계층 코드(B/K/V/S/C) → 상징물 표. 도감 칸에 상징물이 나온다")]
+        [SerializeField] private CasteEmblemTable _emblems;
 
         [Header("칸 제목")]
-        [Tooltip("켜면 제목 앞에 계층 이름을 붙인다. 예: [브라만] ...")]
-        [SerializeField] private bool _showCasteName = true;
-        [Tooltip("엔딩 문장 첫 줄에서 몇 글자까지 제목으로 쓸지")]
-        [SerializeField, Min(4)] private int _titleLength = 14;
+        [Tooltip("{0} = 계층 이름, {1} = 계층 안 엔딩 번호(1부터). 예: [ 크샤트리아 ] 엔딩1")]
+        [SerializeField] private string _titleFormat = "[ {0} ] 엔딩{1}";
 
         // Start가 아니라 Awake: 팝업이 처음 열리는 순간(Opening)부터 확실히 구독하기 위함
         private void Awake()
@@ -44,7 +44,7 @@ namespace Caste.Integration
             if (_gameManager == null || _view == null) return;
             try
             {
-                var list = new BackendEndingList(_gameManager.GetEndingCollection(), _showCasteName, _titleLength);
+                var list = new BackendEndingList(_gameManager.GetEndingCollection(), _titleFormat, _emblems);
                 _view.SetSource(list, list);
             }
             catch (Exception e)

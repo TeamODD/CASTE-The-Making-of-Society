@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 11957bc2f8e273b498627726046c0ced
+guid: d974a777a4ce26b4ea73ea6f9cbe69c0
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -6414658009379161983
-    second: B-ZERO-FAITH_0
+      213: 6425803024037905551
+    second: "\uC5D4\uB529-B-ZERO_FAITH_0"
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: B-ZERO-FAITH_0
+      name: "\uC5D4\uB529-B-ZERO_FAITH_0"
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 640
-        height: 360
+        width: 1000
+        height: 1000
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 188375bd68e8af6a0800000000000000
-      internalID: -6414658009379161983
+      spriteID: f8409641ec90d2950800000000000000
+      internalID: 6425803024037905551
       vertices: []
       indices: 
       edges: []
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      B-ZERO-FAITH_0: -6414658009379161983
+      "\uC5D4\uB529-B-ZERO_FAITH_0": 6425803024037905551
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85a974cc434f74d4e9ec2f2b7a3b396d, type: 3}
+  m_Name: PortraitTable
+  m_EditorClassIdentifier: Assembly-CSharp::Caste.Integration.PortraitTable
+  _entries:
+  - speaker: "\uC0AC\uC81C"
+    portrait: {fileID: 21300000, guid: db5e47cdc3c042d47ae4625cfba5c0b9, type: 3}
+  - speaker: "\uC810\uC131\uC220\uC0AC"
+    portrait: {fileID: 21300000, guid: bbc6248a510bfd2488b1d988eb3652cd, type: 3}
+  - speaker: "\uC0AC\uC6D0 \uC7AC\uBB34\uAD00"
+    portrait: {fileID: 21300000, guid: 556425341948ee94ab8ac4775396247c, type: 3}
+  - speaker: "\uC655\uC2E4 \uB0B4\uBB34\uAD00"
+    portrait: {fileID: 21300000, guid: 33b3371d654386e4b9cfe979175772d9, type: 3}
+  - speaker: "\uC7A5\uAD70"
+    portrait: {fileID: 21300000, guid: cc3ec88a5bf2d704d8108ba46d741288, type: 3}
+  - speaker: "\uC655\uC2E4 \uC7A5\uAD70"
+    portrait: {fileID: 21300000, guid: cc3ec88a5bf2d704d8108ba46d741288, type: 3}
+  - speaker: "\uBE44\uC11C"
+    portrait: {fileID: 21300000, guid: 38ea07cb74b2ad043b85838dd26eea1e, type: 3}
+  - speaker: "\uC120\uC7A5"
+    portrait: {fileID: 21300000, guid: 956810e09ab7ec146a99d6597e8b1963, type: 3}
+  - speaker: "\uACF5\uC815\uAC70\uB798"
+    portrait: {fileID: 21300000, guid: d75bf08650f2460439eaab7a3859f4aa, type: 3}
+  - speaker: "\uAC10\uB3C5\uAD00"
+    portrait: {fileID: 21300000, guid: 8179bb82f72002f49b1078e44fda10bd, type: 3}
+  - speaker: "\uB3D9\uB8CC"
+    portrait: {fileID: 21300000, guid: 35044fa2ffab8b04097a9327f129cab8, type: 3}
+  - speaker: "\uB9C8\uC744\uC8FC\uBBFC"
+    portrait: {fileID: 21300000, guid: 7f7430e348d389c4fbe836c98e34d997, type: 3}
+  - speaker: "\uB9C8\uC744 \uC8FC\uBBFC"
+    portrait: {fileID: 21300000, guid: 7f7430e348d389c4fbe836c98e34d997, type: 3}
+  - speaker: "\uBC30\uACE0\uD508 \uC544\uC774"
+    portrait: {fileID: 21300000, guid: a5598655b01ec9a478fe6e17186f902a, type: 3}
+  - speaker: "\uAC70\uC9C0"
+    portrait: {fileID: 21300000, guid: 6b59b6254d03a2e418b2ab2be75a090c, type: 3}
+  - speaker: "\uB5A0\uB3CC\uC774 \uC0AC\uB0E5\uAFBC"
+    portrait: {fileID: 21300000, guid: 286cacf9e1abe054fa1825bdaa87e115, type: 3}
+  - speaker: "\uB5A0\uB3CC\uC774 \uB3C4\uB451"
+    portrait: {fileID: 21300000, guid: ca2614d4e60f3784b9687b47a6896cc6, type: 3}
+  - speaker: "\uD654\uC7A5\uD130 \uAD00\uB9AC\uC778"
+    portrait: {fileID: 21300000, guid: 23f0be67b7e5e4d4d87aceb342dadd60, type: 3}
+  - speaker: "\uB299\uC740 \uC2DC\uCCB4 \uC218\uC2B5\uAFBC"
+    portrait: {fileID: 21300000, guid: 53657a545ec75724789b2b3b06fdcdd2, type: 3}
+  _fallback: {fileID: 0}

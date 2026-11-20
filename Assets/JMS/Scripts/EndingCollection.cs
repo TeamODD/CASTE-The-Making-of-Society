@@ -1,11 +1,25 @@
 // 도감 일러스트 자동 로딩
 // Assets/JMS/Resources/EndingArt에 CSV의 ending_id와 같은 이름으로 이미지를 넣습니다.
 // 예시 B-ZERO-FAITH.png. Unity의 Texture Type을 Sprite (2D and UI), Sprite Mode를 Single로 설정합니다.
-// 해금된 엔딩만 Resources.Load<Sprite>("EndingArt/" + ending.Id)로 불러옵니다.
+// 해금된 엔딩만 EndingArt.Load(ending.Id)로 불러옵니다. (엔딩 화면도 같은 함수를 씁니다)
 // 경로에는 확장자를 쓰지 않습니다. 이미지가 없거나 엔딩이 잠겨 있으면 Illustration은 null입니다.
 
 using System.Collections.Generic;
 using UnityEngine;
+
+/// <summary>
+/// 엔딩 ID → 일러스트 스프라이트. 이미지 위치 규칙을 한 곳에만 둡니다. (도감·엔딩 화면 공용)
+/// </summary>
+public static class EndingArt
+{
+    public const string ResourcesFolder = "EndingArt/";
+
+    /// <summary>Resources/EndingArt/{id} 스프라이트를 불러옵니다. 없으면 null.</summary>
+    public static Sprite Load(string endingId)
+    {
+        return string.IsNullOrEmpty(endingId) ? null : Resources.Load<Sprite>(ResourcesFolder + endingId);
+    }
+}
 
 public sealed class EndingCollectionGroup
 {
@@ -43,7 +57,7 @@ public sealed class EndingCollectionEntry
         {
             Id = ending.Id;
             Text = ending.Text;
-            Illustration = Resources.Load<Sprite>("EndingArt/" + ending.Id);
+            Illustration = EndingArt.Load(ending.Id);
         }
     }
 }

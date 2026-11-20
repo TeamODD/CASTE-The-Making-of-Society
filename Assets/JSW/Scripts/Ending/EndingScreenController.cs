@@ -1,4 +1,4 @@
-using Caste.Effects;
+﻿using Caste.Effects;
 using Caste.UI;
 using UnityEngine;
 using UnityEngine.Events;
@@ -24,6 +24,8 @@ namespace Caste.Ending
         [SerializeField] private PopupView _popup;
         [Tooltip("엔딩 문장이 출력될 텍스트의 TypewriterEffect")]
         [SerializeField] private TypewriterEffect _typewriter;
+        [Tooltip("(선택) 엔딩 일러스트. 비워두면 글만 나온다")]
+        [SerializeField] private EndingIllustrationView _illustration;
 
         [Header("엔딩 문장 (한 칸 = 한 페이지)")]
         [TextArea(2, 6)]
@@ -68,7 +70,11 @@ namespace Caste.Ending
         }
 
         /// <summary>인스펙터에 적힌 문장으로 엔딩 시작.</summary>
-        public void Show() => Show(_lines);
+        public void Show()
+        {
+            if (_illustration != null) _illustration.Clear();
+            Show(_lines);
+        }
 
         /// <summary>코드에서 엔딩별 문장을 넘겨 시작. (나중에 스탯별 엔딩 연결용)</summary>
         public void Show(string[] lines)
@@ -87,11 +93,22 @@ namespace Caste.Ending
         }
 
         /// <summary>
+        /// 엔딩 문장과 일러스트를 함께 받아 시작 (UnityEvent&lt;string, Sprite&gt;에 바로 연결 가능).
+        /// </summary>
+        public void ShowEnding(string text, Sprite illustration)
+        {
+            ShowTextInternal(text, illustration);
+        }
+
+        /// <summary>
         /// 문장 하나를 받아 시작 (UnityEvent&lt;string&gt;에 바로 연결 가능 → 백엔드 엔딩 문장 연결용).
         /// </summary>
-        public void ShowText(string text)
+        public void ShowText(string text) => ShowTextInternal(text, null);
+
+        private void ShowTextInternal(string text, Sprite illustration)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
+            if (_illustration != null) _illustration.Show(illustration); // 글만 올 때는 이전 그림을 지운다
             if (!_splitLinesIntoPages) { Show(new[] { text.Trim() }); return; }
 
             var pages = new System.Collections.Generic.List<string>();

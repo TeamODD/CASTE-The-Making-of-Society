@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 698c3a916aa533141ba6da3090572b19, type: 3}
+  m_Name: CasteEmblemTable
+  m_EditorClassIdentifier: Assembly-CSharp::Caste.Endings.CasteEmblemTable
+  _rows:
+  - casteCode: B
+    casteName: "\uBE0C\uB77C\uB9CC"
+    emblem: {fileID: 21300000, guid: 5076e7cbf0c046a40a99c273564d14ed, type: 3}
+  - casteCode: K
+    casteName: "\uD06C\uC0E4\uD2B8\uB9AC\uC544"
+    emblem: {fileID: 21300000, guid: 641f4958dabb6bf4ead038fdceeb21ab, type: 3}
+  - casteCode: V
+    casteName: "\uBC14\uC774\uC0E4"
+    emblem: {fileID: 21300000, guid: 8a08cbc3417ef7d4698ada73bfee8956, type: 3}
+  - casteCode: S
+    casteName: "\uC218\uB4DC\uB77C"
+    emblem: {fileID: 21300000, guid: 2d0933159c9f7bb4c937d474db8b4c86, type: 3}
+  - casteCode: C
+    casteName: "\uCC2C\uB2EC\uB77C"
+    emblem: {fileID: 21300000, guid: 9852ecefab7525e49ab2b9222dd0ea0b, type: 3}

@@ -19,5 +19,17 @@ MonoBehaviour:
   buttonColor: {r: 0.16470589, g: 0.11764706, b: 0.078431375, a: 1}
   font: {fileID: 11400000, guid: 08ecda85b73e68d45a735bc6e2bcc4e2, type: 2}
   textColor: {r: 0.9372549, g: 0.8666667, b: 0.70980394, a: 1}
-  settingsIconSprite: {fileID: 0}
-  settingsIconColor: {r: 0.16470589, g: 0.11764706, b: 0.078431375, a: 1}
+  labelColor: {r: 0.16470589, g: 0.11764706, b: 0.078431375, a: 1}
+  settingsIconSprite: {fileID: 21300000, guid: 542db46a2212f3e469d7ce533513b7a1, type: 3}
+  settingsIconColor: {r: 0.9372549, g: 0.8666667, b: 0.70980394, a: 1}
+  sliderTrackSprite: {fileID: 0}
+  sliderTrackColor: {r: 0.7490196, g: 0.654902, b: 0.47843137, a: 1}
+  sliderFillSprite: {fileID: 0}
+  sliderFillColor: {r: 0.41960785, g: 0.30980393, b: 0.2, a: 1}
+  sliderHandleSprite: {fileID: 0}
+  sliderHandleColor: {r: 0.16470589, g: 0.11764706, b: 0.078431375, a: 1}
+  switchBackgroundSprite: {fileID: 0}
+  switchOnColor: {r: 0.16470589, g: 0.11764706, b: 0.078431375, a: 1}
+  switchOffColor: {r: 0.7490196, g: 0.654902, b: 0.47843137, a: 1}
+  switchKnobSprite: {fileID: 0}
+  switchKnobColor: {r: 0.96862745, g: 0.92156863, b: 0.8156863, a: 1}

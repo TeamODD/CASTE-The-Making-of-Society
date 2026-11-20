@@ -1,6 +1,8 @@
-using Caste.UI;
+﻿using Caste.UI;
 using TMPro;
+using System;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
 namespace Caste.Endings
@@ -42,6 +44,15 @@ namespace Caste.Endings
         [Tooltip("켜면 열 때마다 1페이지부터")]
         [SerializeField] private bool _resetPageOnOpen = true;
 
+        [Header("엔딩 다시 보기")]
+        [Tooltip("해금된 칸을 눌렀을 때 그 엔딩 문장을 넘긴다 → EndingScreenController.ShowText에 연결")]
+        public UnityEvent<string> onEndingSelected;
+        [Tooltip("해금된 칸을 눌렀을 때 엔딩 문장 + 일러스트를 넘긴다 → EndingScreenController.ShowEnding에 연결")]
+        public UnityEvent<string, Sprite> onEndingSelectedWithArt;
+
+        /// <summary>해금된 칸을 눌렀을 때 (코드용: 일러스트 등 전체 정보가 필요할 때)</summary>
+        public event Action<EndingEntry> EndingSelected;
+
         private IEndingUnlockStore _store = new PlayerPrefsEndingUnlockStore();
         private IEndingList _list;
         private int _page;
@@ -79,12 +90,29 @@ namespace Caste.Endings
             if (_nextButton != null) _nextButton.onClick.AddListener(NextPage);
             if (_closeButton != null) _closeButton.onClick.AddListener(_popup.Close);
             _popup.Opening += HandleOpening;
+            if (_slots != null)
+                foreach (var slot in _slots) if (slot != null) slot.Clicked += HandleSlotClicked;
             Refresh();
         }
 
         private void OnDestroy()
         {
             if (_popup != null) _popup.Opening -= HandleOpening;
+            if (_slots != null)
+                foreach (var slot in _slots) if (slot != null) slot.Clicked -= HandleSlotClicked;
+        }
+
+        // 칸 위치(0~9) + 현재 페이지 → 실제 엔딩 번호를 계산해서 알린다
+        private void HandleSlotClicked(EndingSlotView slot)
+        {
+            int index = _page * PerPage + Array.IndexOf(_slots, slot);
+            if (_list == null || !_store.IsUnlocked(_list.GetId(index))) return;
+            if (!_list.TryGet(index, out var entry) || entry == null) return;
+
+            EndingSelected?.Invoke(entry);
+            if (string.IsNullOrWhiteSpace(entry.description)) return;
+            onEndingSelectedWithArt?.Invoke(entry.description, entry.illustration);
+            onEndingSelected?.Invoke(entry.description);
         }
 
         public void Open() => _popup.Open();
@@ -121,9 +149,9 @@ namespace Caste.Endings
                 if (index >= total) { slot.Hide(); continue; }
 
                 bool unlocked = _store.IsUnlocked(_list.GetId(index));
-                if (unlocked && _list.TryGet(index, out var entry)) slot.ShowUnlocked(index + 1, entry);
-                else if (unlocked) slot.ShowUnlocked(index + 1, null);
-                else slot.ShowLocked(index + 1);
+                _list.TryGet(index, out var entry); // 잠긴 칸도 상징물 표시용으로 받아 둔다
+                if (unlocked) slot.ShowUnlocked(index + 1, entry);
+                else slot.ShowLocked(index + 1, entry?.casteEmblem, entry?.title);
             }
 
             if (_pageText != null) _pageText.text = string.Format(_pageFormat, _page + 1, PageCount);
