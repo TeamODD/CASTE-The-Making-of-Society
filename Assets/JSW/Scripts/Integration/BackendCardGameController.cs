@@ -1,10 +1,11 @@
-﻿namespace Caste.Integration
+namespace Caste.Integration
 {
     // using을 namespace 안에 둔다: 전역 CardData(JMS)보다 Caste.Cards.CardData를 먼저 찾게 하기 위함.
     using System;
     using Caste.Cards;
     using Caste.CardSwipe;
     using Caste.Stats;
+    using Caste.Tutorial;
     using UnityEngine;
     using UnityEngine.Events;
     using UnityEngine.Serialization;
@@ -34,9 +35,19 @@
         [Tooltip("(선택) 화자 → 초상화 표")]
         [SerializeField] private PortraitTable _portraits;
 
+        [Header("튜토리얼 (선택)")]
+        [Tooltip("카드를 보여주기 전에 끼어들 컴포넌트 (ICardRevealGate 구현, 예: TutorialDirector). 비워두면 튜토리얼 없이 진행")]
+        [SerializeField] private MonoBehaviour _revealGate;
+
         [Header("이벤트 (팝업·연출 연결용)")]
         [Tooltip("계층이 바뀌었을 때 (이전 계층 순서, 새 계층 순서)")]
         public UnityEvent<int, int> onCasteChanged;
+        [Tooltip("카드가 화면에 나올 때마다 그 카드의 계층 코드(B, K, V, S, C)를 넘긴다 → CasteEmblemView.ShowCaste에 연결")]
+        public UnityEvent<string> onCasteCodeShown;
+        [Tooltip("카드가 화면에 나올 때마다 그 카드의 계층 이름(브라만, 크샤트리아 ...)을 넘긴다 → CasteNameView.ShowName에 연결")]
+        public UnityEvent<string> onCasteNameShown;
+        [Tooltip("카드가 화면에 나올 때마다 (계층 코드, 계층 이름)을 함께 넘긴다 → CasteChangeAnnouncer.OnCasteShown에 연결")]
+        public UnityEvent<string, string> onCasteShown;
         [Tooltip("마지막 계층까지 끝나서 더 낼 카드가 없을 때")]
         public UnityEvent onGameFinished;
         [Tooltip("엔딩이 나왔을 때 엔딩 문장을 넘긴다 → EndingScreenController.ShowText에 연결")]
@@ -51,12 +62,18 @@
 
         private JmsCardConverter _converter;
         private bool _cardInFlight; // 카드가 날아가는 중에는 내용 교체를 미룬다
+        private ICardRevealGate _gate;
+        private int _choicesMade;   // 이번 판에서 고른 횟수 (튜토리얼 시점 판단용)
 
         private void Awake()
         {
             Stats = new StatModel(_stats);
             _converter = new JmsCardConverter(_stats, _portraits);
             _statPanel.Bind(Stats);
+
+            _gate = _revealGate as ICardRevealGate;
+            if (_revealGate != null && _gate == null)
+                Debug.LogWarning($"[Backend] {_revealGate.name}은(는) ICardRevealGate를 구현하지 않아 튜토리얼이 연결되지 않습니다.", this);
 
             foreach (var stat in _stats)
                 if (stat != null && stat.Key == StatKey.None)
@@ -96,9 +113,16 @@
             if (_gameManager.State == null) StartNewGame();
         }
 
-        public void StartNewGame() => Run(_gameManager.StartNewGame);
-        public void ResumeGame() => Run(_gameManager.ResumeGame);
-        public void BackToCheckpoint() => Run(_gameManager.BackToStart);
+        // 백엔드 호출보다 먼저 BeginRun: 백엔드가 즉시 상태 변경을 알려 카드 표시가 바로 일어나기 때문
+        public void StartNewGame() { BeginRun(true); Run(_gameManager.StartNewGame); }
+        public void ResumeGame() { BeginRun(false); Run(_gameManager.ResumeGame); }
+        public void BackToCheckpoint() { BeginRun(false); Run(_gameManager.BackToStart); }
+
+        private void BeginRun(bool isNewGame)
+        {
+            _choicesMade = 0;
+            _gate?.BeginRun(isNewGame);
+        }
 
         // ───────── 입력 → 백엔드 ─────────
 
@@ -106,6 +130,7 @@
         private void OnChoiceCommitted(SwipeDirection dir)
         {
             _cardInFlight = true;
+            _choicesMade++;
             Run(dir == SwipeDirection.Left ? _gameManager.ChooseLeft : _gameManager.ChooseRight);
         }
 
@@ -140,11 +165,28 @@
             var state = _gameManager.State;
             if (state == null) return; // 아직 게임이 열리지 않음
 
-            CardData card = _converter.Convert(state.GetCurrentCard());
+            var raw = state.GetCurrentCard();
+
+            // 튜토리얼 등이 끼어들면 카드 표시를 미루고, 끝나면 이 메서드를 다시 불러준다
+            if (raw != null && _gate != null && _gate.TryHold(_choicesMade, ShowCurrentCard))
+            {
+                _swipe.enabled = false;
+                return;
+            }
+
+            CardData card = _converter.Convert(raw);
             _cardView.Show(card);
             _statPanel.SetCard(card);
-
             _swipe.enabled = card != null;
+
+            // 스와이프 활성화 뒤에 알린다 → 연출 쪽에서 조작을 잠가도 바로 다시 켜지지 않는다
+            if (raw != null)
+            {
+                onCasteCodeShown?.Invoke(raw.casteCode);
+                onCasteNameShown?.Invoke(raw.casteName);
+                onCasteShown?.Invoke(raw.casteCode, raw.casteName);
+            }
+
             if (card != null) return;
 
             // 더 낼 카드가 없음 = 게임 종료. 백엔드가 고른 엔딩 문장을 엔딩 화면으로 넘긴다.
